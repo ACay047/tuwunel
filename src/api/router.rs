@@ -274,6 +274,7 @@ pub fn build(router: Router<State>, server: &Server) -> Router<State> {
 			.ruma_route(&server::get_hierarchy_route)
 			.ruma_route(&server::get_content_route)
 			.ruma_route(&server::get_content_thumbnail_route)
+			.route("/_matrix/federation/v1/query/edutypes", get(server::get_edu_types_route))
 			.route("/_tuwunel/local_user_count", get(client::tuwunel_local_user_count));
 	} else {
 		router = router
