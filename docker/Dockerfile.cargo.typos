@@ -16,5 +16,6 @@ RUN <<EOF
             --exclude nix \
             --exclude RELEASE.md \
             --exclude 'tests/complement/*.jsonl' \
+            --exclude 'docs/development/compliance/msc.md' \
             ${typos_args}
 EOF
