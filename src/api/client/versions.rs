@@ -51,7 +51,7 @@ static VERSIONS: [&str; 17] = [
 	"v1.15",  /* custom profile fields */
 ];
 
-static UNSTABLE_FEATURES: [&str; 24] = [
+static UNSTABLE_FEATURES: [&str; 25] = [
 	"org.matrix.e2e_cross_signing",
 	// private read receipts (https://github.com/matrix-org/matrix-spec-proposals/pull/2285)
 	"org.matrix.msc2285.stable",
@@ -98,4 +98,6 @@ static UNSTABLE_FEATURES: [&str; 24] = [
 	"org.matrix.msc2967",
 	// OIDC delegation aware
 	"org.matrix.msc3824",
+	// Backwards-compatible redaction sending via /send (https://github.com/matrix-org/matrix-spec-proposals/pull/4169)
+	"com.beeper.msc4169",
 ];

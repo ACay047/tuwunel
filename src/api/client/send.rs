@@ -92,6 +92,22 @@ pub(crate) async fn send_message_event_route(
 	let content = from_str(body.body.body.json().get())
 		.map_err(|e| err!(Request(BadJson("Invalid JSON body: {e}"))))?;
 
+	// MSC4169: clients sending m.room.redaction via /send put `redacts` in
+	// `content`. Pre-v11 auth rules read it from the top level; lift it so
+	// `redacts_id(...)` resolves regardless of room version. Mirrors the
+	// /redact handler.
+	let redacts = body
+		.event_type
+		.eq(&MessageLikeEventType::RoomRedaction)
+		.then(|| {
+			body.body
+				.body
+				.deserialize_as_unchecked::<RoomRedactionEventContent>()
+				.ok()
+		})
+		.flatten()
+		.and_then(|content| content.redacts);
+
 	let event_id = services
 		.timeline
 		.build_and_append_pdu(
@@ -100,6 +116,7 @@ pub(crate) async fn send_message_event_route(
 				content,
 				unsigned: Some(unsigned),
 				timestamp: appservice_info.and(body.timestamp),
+				redacts,
 				..Default::default()
 			},
 			sender_user,
