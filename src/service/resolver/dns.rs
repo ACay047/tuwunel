@@ -3,8 +3,9 @@ use std::{net::SocketAddr, sync::Arc, time::Duration};
 use futures::FutureExt;
 use hickory_resolver::{
 	TokioResolver,
-	config::{LookupIpStrategy, ResolverConfig, ResolverOpts},
+	config::{ConnectionConfig, LookupIpStrategy, ResolverConfig, ResolverOpts},
 	lookup_ip::LookupIp,
+	net::runtime::TokioRuntimeProvider,
 };
 use reqwest::dns::{Addrs, Name, Resolve, Resolving};
 use tuwunel_core::{Result, Server, err, trace};
@@ -40,7 +41,7 @@ impl Resolver {
 		let (conf, mut opts) = Self::configure(server)?;
 		opts.negative_min_ttl = Some(Duration::from_secs(config.dns_min_ttl_nxdomain));
 		opts.positive_min_ttl = Some(Duration::from_secs(config.dns_min_ttl));
-		opts.cache_size = config.dns_cache_entries.try_into()?;
+		opts.cache_size = config.dns_cache_entries.into();
 		let resolver = Self::create(server, conf.clone(), opts.clone())?;
 
 		// Create the passthru resolver with modified options.
@@ -71,12 +72,14 @@ impl Resolver {
 		conf: ResolverConfig,
 		opts: ResolverOpts,
 	) -> Result<Arc<TokioResolver>> {
-		let rt_prov = hickory_resolver::proto::runtime::TokioRuntimeProvider::new();
-		let conn_prov = hickory_resolver::name_server::TokioConnectionProvider::new(rt_prov);
-		let mut builder = TokioResolver::builder_with_config(conf, conn_prov);
+		let mut builder =
+			TokioResolver::builder_with_config(conf, TokioRuntimeProvider::default());
 		*builder.options_mut() = Self::configure_opts(server, opts);
 
-		Ok(Arc::new(builder.build()))
+		builder
+			.build()
+			.map(Arc::new)
+			.map_err(|e| err!(error!("Failed to build DNS resolver: {e}")))
 	}
 
 	fn configure(server: &Arc<Server>) -> Result<(ResolverConfig, ResolverOpts)> {
@@ -86,24 +89,24 @@ impl Resolver {
 				err!(error!("Failed to configure DNS resolver from `/etc/resolv.conf': {e}"))
 			})?;
 
-		let mut conf = ResolverConfig::new();
-		if let Some(domain) = sys_conf.domain() {
-			conf.set_domain(domain.clone());
-		}
+		let name_servers = sys_conf
+			.name_servers()
+			.iter()
+			.cloned()
+			.map(|mut ns| {
+				ns.trust_negative_responses = !config.query_all_nameservers;
+				if config.query_over_tcp_only {
+					ns.connections = vec![ConnectionConfig::tcp()];
+				}
+				ns
+			})
+			.collect();
 
-		for sys_conf in sys_conf.search() {
-			conf.add_search(sys_conf.clone());
-		}
-
-		for sys_conf in sys_conf.name_servers() {
-			let mut ns = sys_conf.clone();
-			ns.trust_negative_responses = !config.query_all_nameservers;
-			if config.query_over_tcp_only {
-				ns.protocol = hickory_resolver::proto::xfer::Protocol::Tcp;
-			}
-
-			conf.add_name_server(ns);
-		}
+		let conf = ResolverConfig::from_parts(
+			sys_conf.domain().cloned(),
+			sys_conf.search().to_vec(),
+			name_servers,
+		);
 
 		Ok((conf, opts))
 	}
@@ -223,12 +226,15 @@ async fn resolve_to_reqwest(
 	use std::{io, io::ErrorKind::Interrupted};
 
 	let handle_shutdown = || Box::new(io::Error::new(Interrupted, "Server shutting down"));
-	let handle_results = |results: LookupIp| {
-		Box::new(
-			results
-				.into_iter()
-				.map(|ip| SocketAddr::new(ip, 0)),
-		)
+
+	let handle_results = |results: LookupIp| -> Addrs {
+		let addrs = results
+			.iter()
+			.map(|ip| SocketAddr::new(ip, 0))
+			.collect::<Vec<_>>()
+			.into_iter();
+
+		Box::new(addrs)
 	};
 
 	tokio::select! {
