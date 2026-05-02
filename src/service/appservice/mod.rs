@@ -3,7 +3,7 @@ mod namespace_regex;
 mod registration_info;
 pub(crate) mod request;
 
-use std::{collections::BTreeMap, fs, iter::IntoIterator, sync::Arc};
+use std::{collections::BTreeMap, ffi::OsStr, fs, iter::IntoIterator, sync::Arc};
 
 use async_trait::async_trait;
 use futures::{Future, FutureExt, Stream, TryStreamExt};
@@ -58,6 +58,16 @@ impl crate::Service for Service {
 		if let Some(appservice_dir) = &self.services.config.appservice_dir {
 			for dir_entry in fs::read_dir(appservice_dir)? {
 				let path = dir_entry?.path();
+
+				if !path.is_file()
+					|| !path
+						.extension()
+						.and_then(OsStr::to_str)
+						.is_some_and(|ext| matches!(ext, "yaml" | "yml"))
+				{
+					continue;
+				}
+
 				let bytes = fs::read(path)?;
 				let registration: Registration = serde_yaml::from_slice(&bytes)?;
 
