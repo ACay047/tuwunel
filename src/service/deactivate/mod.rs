@@ -27,7 +27,10 @@ impl Service {
 	/// - Removing avatar URL and blurhash
 	/// - Removing all profile data
 	/// - Leaving all rooms (and forgets all of them)
-	pub async fn full_deactivate(&self, user_id: &UserId) -> Result {
+	///
+	/// When `erase` is `true`, additionally erase non-event data per
+	/// MSC4025: all global and per-room account data for the user.
+	pub async fn full_deactivate(&self, user_id: &UserId, erase: bool) -> Result {
 		self.services
 			.users
 			.deactivate_account(user_id)
@@ -137,6 +140,29 @@ impl Service {
 			.chain(rooms_knocked)
 			.collect()
 			.await;
+
+		// MSC4025: erase non-event data when the user requested it.
+		if erase {
+			self.services
+				.account_data
+				.erase_user(user_id, None)
+				.await;
+
+			let rooms_left: Vec<OwnedRoomId> = self
+				.services
+				.state_cache
+				.rooms_left(user_id)
+				.map(ToOwned::to_owned)
+				.collect()
+				.await;
+
+			for room_id in all_rooms.iter().chain(rooms_left.iter()) {
+				self.services
+					.account_data
+					.erase_user(user_id, Some(room_id))
+					.await;
+			}
+		}
 
 		for room_id in all_rooms {
 			let state_lock = self.services.state.mutex.lock(&room_id).await;

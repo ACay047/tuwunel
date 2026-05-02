@@ -102,7 +102,7 @@ pub(crate) async fn deactivate_route(
 
 	services
 		.deactivate
-		.full_deactivate(sender_user)
+		.full_deactivate(sender_user, body.erase)
 		.boxed()
 		.await?;
 

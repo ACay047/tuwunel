@@ -162,6 +162,29 @@ pub fn changes_since<'a>(
 		.ignore_err()
 }
 
+/// MSC4025: erase all account data for a user in the given namespace
+/// (global if `room_id` is `None`, otherwise a single room). Mirrors
+/// `threads::delete_all_rooms_threads`: prefix-scan the keys and
+/// remove each.
+#[implement(Service)]
+pub async fn erase_user(&self, user_id: &UserId, room_id: Option<&RoomId>) {
+	let prefix = (room_id, user_id, Interfix);
+
+	self.db
+		.roomuserdataid_accountdata
+		.keys_prefix_raw(&prefix)
+		.ignore_err()
+		.ready_for_each(|key| self.db.roomuserdataid_accountdata.remove(key))
+		.await;
+
+	self.db
+		.roomusertype_roomuserdataid
+		.keys_prefix_raw(&prefix)
+		.ignore_err()
+		.ready_for_each(|key| self.db.roomusertype_roomuserdataid.remove(key))
+		.await;
+}
+
 /// Returns all changes to the account data that happened after `since`.
 #[implement(Service)]
 pub async fn last_count<'a>(

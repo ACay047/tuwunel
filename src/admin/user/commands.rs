@@ -229,7 +229,7 @@ async fn deactivate_user(services: &Services, user_id: &UserId, no_leave_rooms: 
 	if !no_leave_rooms {
 		services
 			.deactivate
-			.full_deactivate(user_id)
+			.full_deactivate(user_id, false)
 			.boxed()
 			.await?;
 	} else {
