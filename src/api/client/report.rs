@@ -5,7 +5,6 @@ use ruma::{
 		reporting::report_user,
 		room::{report_content, report_room},
 	},
-	events::room::message,
 };
 use tuwunel_core::{Err, Result, debug_info, info, matrix::pdu::PduEvent, utils::ReadyExt};
 use tuwunel_service::Services;
@@ -46,16 +45,13 @@ pub(crate) async fn report_room_route(
 		)));
 	}
 
-	// send admin room message that we received the report with an @room ping for
-	// urgency
 	services
 		.admin
-		.send_message(message::RoomMessageEventContent::text_markdown(format!(
+		.send_text(&format!(
 			"@room Room report received from {}\nReport Reason: {}\n\nRoom ID: {}",
 			sender_user, body.reason, body.room_id,
-		)))
-		.await
-		.ok();
+		))
+		.await;
 
 	Ok(report_room::v3::Response {})
 }
@@ -134,17 +130,14 @@ pub(crate) async fn report_event_route(
 	)
 	.await?;
 
-	// send admin room message that we received the report with an @room ping for
-	// urgency
 	services
 		.admin
-		.send_message(message::RoomMessageEventContent::text_markdown(format!(
+		.send_text(&format!(
 			"@room Event report received from {}\nReport Reason: {}\n\nEvent ID: {}\nRoom ID: \
 			 {}\nSent By: {}",
 			sender_user, reason, pdu.event_id, pdu.room_id, pdu.sender,
-		)))
-		.await
-		.ok();
+		))
+		.await;
 
 	Ok(report_content::v3::Response {})
 }
