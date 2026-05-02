@@ -31,7 +31,7 @@ use tuwunel_core::{
 };
 use tuwunel_service::Services;
 
-use crate::Ruma;
+use crate::{Ruma, client::is_ignored_pdu};
 
 /// # `GET /_matrix/client/r0/rooms/{roomId}/relations/{eventId}/{relType}/{eventType}`
 pub(crate) async fn get_relating_events_with_rel_type_and_event_type_route(
@@ -141,6 +141,8 @@ async fn paginate_relations_with_filter(
 		.unwrap_or(30)
 		.min(100);
 
+	let target_event_id: &EventId = target;
+
 	let target = services
 		.timeline
 		.get_pdu_id(target)
@@ -168,6 +170,16 @@ async fn paginate_relations_with_filter(
 
 	if let PduCount::Backfilled(_) = target.count {
 		return Ok(get_relating_events::v1::Response::new(Vec::new()));
+	}
+
+	if let Ok(target_pdu) = services.timeline.get_pdu(target_event_id).await
+		&& is_ignored_pdu(services, &target_pdu, sender_user).await
+	{
+		return Err!(HttpJson(NOT_FOUND, {
+			"errcode": "M_SENDER_IGNORED",
+			"error": "You have ignored the user that sent this event",
+			"sender": target_pdu.sender().as_str(),
+		}));
 	}
 
 	let fetch = |depth: usize, count: PduCount| {

@@ -17,7 +17,10 @@ use tuwunel_service::rooms::{lazy_loading, lazy_loading::Options, short::ShortSt
 
 use crate::{
 	Ruma,
-	client::message::{event_filter, ignored_filter, lazy_loading_witness, visibility_filter},
+	client::{
+		is_ignored_pdu,
+		message::{event_filter, ignored_filter, lazy_loading_witness, visibility_filter},
+	},
 };
 
 const LIMIT_MAX: usize = 100;
@@ -78,6 +81,14 @@ pub(crate) async fn get_context_route(
 		);
 
 		return Err!(Request(NotFound("Event not found.")));
+	}
+
+	if is_ignored_pdu(&services, &base_pdu, sender_user).await {
+		return Err!(HttpJson(NOT_FOUND, {
+			"errcode": "M_SENDER_IGNORED",
+			"error": "You have ignored the user that sent this event",
+			"sender": base_pdu.sender().as_str(),
+		}));
 	}
 
 	let base_count = base_id.pdu_count();
