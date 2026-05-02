@@ -185,7 +185,7 @@ features = [
 ]
 
 [workspace.dependencies.hickory-resolver]
-version = "0.25"
+version = "0.26"
 default-features = false
 features = [
 	"serde",
