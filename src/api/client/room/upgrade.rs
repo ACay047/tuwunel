@@ -8,13 +8,14 @@ use ruma::{
 	events::{
 		StateEventType, TimelineEventType,
 		room::{
-			create::PreviousRoom,
+			create::{PreviousRoom, RoomCreateEventContent},
 			member::{MembershipState, RoomMemberEventContent},
 			power_levels::RoomPowerLevelsEventContent,
 			tombstone::RoomTombstoneEventContent,
 		},
 	},
 	int,
+	room::RoomType,
 	room_version_rules::{RoomIdFormatVersion, RoomVersionRules},
 };
 use serde_json::{Value as JsonValue, json, value::to_raw_value};
@@ -24,7 +25,7 @@ use tuwunel_core::{
 	utils::{
 		ReadyExt,
 		future::TryExtExt,
-		stream::{IterStream, WidebandExt},
+		stream::{IterStream, TryIgnore, WidebandExt},
 	},
 };
 use tuwunel_service::{Services, rooms::timeline::RoomMutexGuard};
@@ -330,6 +331,8 @@ async fn transfer_room(&self) -> Result {
 
 	self.move_state_events().await?;
 
+	self.move_space_state().await?;
+
 	self.move_sender_user().await?;
 
 	self.move_local_aliases().await?;
@@ -437,6 +440,65 @@ async fn move_state_events(&self) -> Result {
 		.await
 }
 
+// MSC4168: copy m.space.parent for any room, plus m.space.child when the
+// old room is itself a space, into the upgraded room.
+#[implement(RoomUpgradeContext, params = "<'_>")]
+#[tracing::instrument(level = "debug")]
+async fn move_space_state(&self) -> Result {
+	let old_room_is_space = self
+		.services
+		.state_accessor
+		.room_state_get_content::<RoomCreateEventContent>(
+			self.old_room_id,
+			&StateEventType::RoomCreate,
+			"",
+		)
+		.await
+		.ok()
+		.and_then(|c| c.room_type)
+		.is_some_and(|t| matches!(t, RoomType::Space));
+
+	let event_types: &[StateEventType] = match old_room_is_space {
+		| true => &[StateEventType::SpaceParent, StateEventType::SpaceChild],
+		| false => &[StateEventType::SpaceParent],
+	};
+
+	for event_type in event_types {
+		let state_keys: Vec<StateKey> = self
+			.services
+			.state_accessor
+			.room_state_keys(self.old_room_id, event_type)
+			.ignore_err()
+			.collect()
+			.await;
+
+		for state_key in state_keys {
+			let Ok(event) = self
+				.services
+				.state_accessor
+				.room_state_get(self.old_room_id, event_type, &state_key)
+				.await
+			else {
+				continue;
+			};
+
+			self.services
+				.timeline
+				.build_and_append_pdu(
+					self.rebuild_state_event(&event).await?,
+					self.creator,
+					self.new_room_id,
+					self.new_state_lock,
+				)
+				.inspect_err(|e| error!(?event, ?self, "Failed to copy space state: {e}"))
+				.await
+				.ok();
+		}
+	}
+
+	Ok(())
+}
+
 #[implement(RoomUpgradeContext, params = "<'_>")]
 #[tracing::instrument(level = "debug")]
 async fn rebuild_state_event<Pdu: Event>(&self, event: &Pdu) -> Result<PduBuilder> {
@@ -495,6 +557,17 @@ async fn rebuild_state_event<Pdu: Event>(&self, event: &Pdu) -> Result<PduBuilde
 							users.insert(user_id.to_string(), level.clone());
 						});
 				}
+			}
+
+			to_raw_value(&content)?
+		},
+		// MSC4168: rewrite `via` to the upgrading server's name on copied
+		// space-graph state events, since the previous room's via list may
+		// no longer cover the upgraded room.
+		| TimelineEventType::SpaceChild | TimelineEventType::SpaceParent => {
+			let mut content = event.get_content_as_value();
+			if let Some(obj) = content.as_object_mut() {
+				obj.insert("via".to_owned(), json!([self.sender_user.server_name().as_str()]));
 			}
 
 			to_raw_value(&content)?
