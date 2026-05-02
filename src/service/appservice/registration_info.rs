@@ -29,15 +29,21 @@ impl RegistrationInfo {
 		})
 	}
 
+	/// MSC3905: the `users` regex matches local users only.
 	#[inline]
 	#[must_use]
 	pub fn is_user_match(&self, user_id: &UserId) -> bool {
-		user_id == self.sender || self.users.is_match(user_id.as_str())
+		user_id == self.sender
+			|| (self.users.is_match(user_id.as_str())
+				&& user_id.server_name() == self.sender.server_name())
 	}
 
+	/// MSC3905: the `users` regex matches local users only.
 	#[inline]
 	#[must_use]
 	pub fn is_exclusive_user_match(&self, user_id: &UserId) -> bool {
-		user_id == self.sender || self.users.is_exclusive_match(user_id.as_str())
+		user_id == self.sender
+			|| (self.users.is_exclusive_match(user_id.as_str())
+				&& user_id.server_name() == self.sender.server_name())
 	}
 }

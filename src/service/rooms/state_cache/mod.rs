@@ -109,7 +109,7 @@ pub async fn appservice_in_room(&self, room_id: &RoomId, appservice: &Registrati
 	let in_room = self.is_joined(&bridge_user_id, room_id).await
 		|| self
 			.room_members(room_id)
-			.ready_any(|user_id| appservice.users.is_match(user_id.as_str()))
+			.ready_any(|user_id| appservice.is_user_match(user_id))
 			.await;
 
 	self.appservice_in_room_cache
