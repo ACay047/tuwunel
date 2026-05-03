@@ -1,24 +1,21 @@
 use std::{fmt::Debug, mem};
 
 use bytes::Bytes;
-use http::{HeaderValue, header::AUTHORIZATION};
 use ipaddress::IPAddress;
 use reqwest::{Client, Method, Request, Response, Url};
 use ruma::{
-	CanonicalJsonName, CanonicalJsonObject, CanonicalJsonValue, ServerName, ServerSigningKeyId,
+	ServerName,
 	api::{
 		EndpointError, IncomingResponse, MatrixVersion, OutgoingRequest, SupportedVersions,
-		auth_scheme::{AuthScheme, SendAccessToken},
 		error::Error as RumaError,
-		federation::authentication::XMatrix,
 	},
-	serde::Base64,
 };
 use tuwunel_core::{
 	Err, Error, Result, debug, debug::INFO_SPAN_LEVEL, debug_error, debug_warn, err,
-	error::inspect_debug_log, implement, trace, utils::string::EMPTY,
+	error::inspect_debug_log, implement, trace,
 };
 
+use super::scheme::{FedAuth, FedPath};
 use crate::resolver::actual::ActualDest;
 
 /// Sends a request to a federation server
@@ -27,6 +24,8 @@ use crate::resolver::actual::ActualDest;
 pub async fn execute<T>(&self, dest: &ServerName, request: T) -> Result<T::IncomingResponse>
 where
 	T: OutgoingRequest + Debug + Send,
+	T::Authentication: FedAuth,
+	T::PathBuilder: FedPath,
 {
 	let client = &self.services.client.federation;
 	self.execute_on(client, dest, request).await
@@ -42,6 +41,8 @@ pub async fn execute_synapse<T>(
 ) -> Result<T::IncomingResponse>
 where
 	T: OutgoingRequest + Debug + Send,
+	T::Authentication: FedAuth,
+	T::PathBuilder: FedPath,
 {
 	let client = &self.services.client.synapse;
 	self.execute_on(client, dest, request).await
@@ -61,6 +62,8 @@ pub async fn execute_on<T>(
 ) -> Result<T::IncomingResponse>
 where
 	T: OutgoingRequest + Send,
+	T::Authentication: FedAuth,
+	T::PathBuilder: FedPath,
 {
 	if !self.services.server.config.allow_federation {
 		return Err!(Config("allow_federation", "Federation is disabled."));
@@ -96,6 +99,8 @@ async fn perform<T>(
 ) -> Result<T::IncomingResponse>
 where
 	T: OutgoingRequest + Send,
+	T::Authentication: FedAuth,
+	T::PathBuilder: FedPath,
 {
 	let url = request.url().clone();
 	let method = request.method().clone();
@@ -113,6 +118,8 @@ where
 fn prepare<T>(&self, actual: &ActualDest, dest: &ServerName, request: T) -> Result<Request>
 where
 	T: OutgoingRequest + Send,
+	T::Authentication: FedAuth,
+	T::PathBuilder: FedPath,
 {
 	let request = self.to_http_request::<T>(actual, dest, request)?;
 	let request = Request::try_from(request)?;
@@ -143,6 +150,8 @@ async fn handle_response<T>(
 ) -> Result<T::IncomingResponse>
 where
 	T: OutgoingRequest + Send,
+	T::Authentication: FedAuth,
+	T::PathBuilder: FedPath,
 {
 	let response = into_http_response(dest, actual, method, url, response).await?;
 
@@ -240,92 +249,23 @@ fn to_http_request<T>(
 ) -> Result<http::Request<Vec<u8>>>
 where
 	T: OutgoingRequest + Send,
+	T::Authentication: FedAuth,
+	T::PathBuilder: FedPath,
 {
 	const VERSIONS: [MatrixVersion; 1] = [MatrixVersion::V1_11];
-	const SATIR: SendAccessToken<'_> = SendAccessToken::IfRequired(EMPTY);
 	let supported = SupportedVersions {
 		versions: VERSIONS.into(),
 		features: Default::default(),
 	};
 
-	let mut request = request
-		.try_into_http_request::<Vec<u8>>(actual.to_string().as_str(), SATIR, &supported)
-		.map_err(|e| err!(BadServerResponse("Invalid destination: {e:?}")))?;
+	let auth = T::Authentication::input(
+		self.services.server.name.clone(),
+		dest.to_owned(),
+		self.services.server_keys.keypair(),
+	);
+	let path = T::PathBuilder::input(&supported);
 
-	if matches!(T::METADATA.authentication, AuthScheme::ServerSignatures) {
-		self.sign_request(&mut request, dest);
-	}
-
-	Ok(request)
-}
-
-#[implement(super::Service)]
-fn sign_request(&self, http_request: &mut http::Request<Vec<u8>>, dest: &ServerName) {
-	type Member = (CanonicalJsonName, Value);
-	type Value = CanonicalJsonValue;
-	type Object = CanonicalJsonObject;
-
-	let origin = &self.services.server.name;
-	let body = http_request.body();
-	let uri = http_request
-		.uri()
-		.path_and_query()
-		.expect("http::Request missing path_and_query");
-
-	let mut req: Object = if !body.is_empty() {
-		let content: CanonicalJsonValue =
-			serde_json::from_slice(body).expect("failed to serialize body");
-
-		let authorization: [Member; 5] = [
-			("content".into(), content),
-			("destination".into(), dest.as_str().into()),
-			("method".into(), http_request.method().as_str().into()),
-			("origin".into(), origin.as_str().into()),
-			("uri".into(), uri.to_string().into()),
-		];
-
-		authorization.into()
-	} else {
-		let authorization: [Member; 4] = [
-			("destination".into(), dest.as_str().into()),
-			("method".into(), http_request.method().as_str().into()),
-			("origin".into(), origin.as_str().into()),
-			("uri".into(), uri.to_string().into()),
-		];
-
-		authorization.into()
-	};
-
-	self.services
-		.server_keys
-		.sign_json(&mut req)
-		.expect("request signing failed");
-
-	let signatures = req["signatures"]
-		.as_object()
-		.and_then(|object| object[origin.as_str()].as_object())
-		.expect("origin signatures object");
-
-	let key: &ServerSigningKeyId = signatures
-		.keys()
-		.next()
-		.map(|k| k.as_str().try_into())
-		.expect("at least one signature from this origin")
-		.expect("keyid is json string");
-
-	let sig: Base64 = signatures
-		.values()
-		.next()
-		.map(|s| s.as_str().map(Base64::parse))
-		.expect("at least one signature from this origin")
-		.expect("signature is json string")
-		.expect("signature is valid base64");
-
-	let x_matrix = XMatrix::new(origin.into(), dest.into(), key.into(), sig);
-	let authorization = HeaderValue::from(&x_matrix);
-	let authorization = http_request
-		.headers_mut()
-		.insert(AUTHORIZATION, authorization);
-
-	debug_assert!(authorization.is_none(), "Authorization header already present");
+	request
+		.try_into_http_request::<Vec<u8>>(actual.to_string().as_str(), auth, path)
+		.map_err(|e| err!(BadServerResponse("Invalid destination: {e:?}")))
 }

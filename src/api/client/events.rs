@@ -44,10 +44,7 @@ pub(crate) async fn events_route(
 		.max(services.config.client_sync_timeout_min)
 		.min(services.config.client_sync_timeout_max);
 
-	let Some(room_id) = body.room_id.as_deref() else {
-		//TODO: upgrade ruma
-		return Err!(Request(InvalidParam("Missing RoomId parameter.")));
-	};
+	let room_id = body.room_id.as_ref();
 
 	if !services
 		.state_accessor

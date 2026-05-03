@@ -1,5 +1,5 @@
 use axum::extract::State;
-use ruma::api::client::rtc::{RtcTransport, transports};
+use ruma::api::client::rtc::transports::{self, v1::RtcTransport};
 use serde_json::Value;
 use tuwunel_core::{Result, err, error::inspect_log};
 use tuwunel_service::Services;

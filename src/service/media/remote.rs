@@ -17,6 +17,7 @@ use tuwunel_core::{
 };
 
 use super::{Dim, Media};
+use crate::federation::scheme::{FedAuth, FedPath};
 
 #[implement(super::Service)]
 #[tracing::instrument(level = "debug", skip(self))]
@@ -318,6 +319,8 @@ async fn federation_request<Request>(
 ) -> Result<Request::IncomingResponse>
 where
 	Request: OutgoingRequest + Send + Debug,
+	Request::Authentication: FedAuth,
+	Request::PathBuilder: FedPath,
 {
 	self.services
 		.federation

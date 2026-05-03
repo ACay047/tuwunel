@@ -8,10 +8,10 @@ use axum::{
 };
 use futures::{Future, TryFutureExt};
 use http::Method;
-use ruma::api::IncomingRequest;
+use ruma::api::{IncomingRequest, Metadata as _, path_builder::PathBuilder};
 use tuwunel_core::{Result, trace};
 
-use super::{Ruma, RumaResponse, State};
+use super::{Ruma, RumaResponse, State, auth::AuthDispatch};
 
 pub(in super::super) trait RumaHandler<T> {
 	fn add_route(&'static self, router: Router<State>, path: &str) -> Router<State>;
@@ -42,19 +42,19 @@ macro_rules! ruma_handler {
 			Fun: Fn($($tx,)* Ruma<Req>,) -> Fut + Send + Sync + 'static,
 			Fut: Future<Output = Result<Req::OutgoingResponse, Err>> + Send,
 			Req: IncomingRequest + Debug + Send + Sync + 'static,
+			Req::Authentication: AuthDispatch,
 			Err: IntoResponse + Debug + Send,
 			<Req as IncomingRequest>::OutgoingResponse: Debug + Send,
 			$( $tx: FromRequestParts<State> + Send + Sync + 'static, )*
 		{
 			fn add_routes(&'static self, router: Router<State>) -> Router<State> {
-				Req::METADATA
-					.history
+				Req::PATH_BUILDER
 					.all_paths()
 					.fold(router, |router, path| self.add_route(router, path))
 			}
 
 			fn add_route(&'static self, router: Router<State>, path: &str) -> Router<State> {
-				let method = method_to_filter(&Req::METADATA.method);
+				let method = method_to_filter(Req::METHOD);
 				let action = |$($tx,)* req| {
 					self($($tx,)* req)
 						.inspect_ok(|result| trace!(?result))
@@ -72,8 +72,8 @@ ruma_handler!(T1, T2);
 ruma_handler!(T1, T2, T3);
 ruma_handler!(T1, T2, T3, T4);
 
-const fn method_to_filter(method: &Method) -> MethodFilter {
-	match *method {
+fn method_to_filter(method: Method) -> MethodFilter {
+	match method {
 		| Method::DELETE => MethodFilter::DELETE,
 		| Method::GET => MethodFilter::GET,
 		| Method::HEAD => MethodFilter::HEAD,

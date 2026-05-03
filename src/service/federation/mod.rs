@@ -1,5 +1,6 @@
 mod execute;
 mod format;
+pub mod scheme;
 
 use std::sync::Arc;
 

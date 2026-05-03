@@ -1,6 +1,12 @@
 use axum::extract::State;
 use futures::{FutureExt, join};
-use ruma::{api::client::membership::invite_user, events::room::member::MembershipState};
+use ruma::{
+	api::client::membership::invite_user::{
+		self,
+		v3::{InvitationRecipient, InviteUserId},
+	},
+	events::room::member::MembershipState,
+};
 use tuwunel_core::{Err, Result};
 
 use super::banned_room_check;
@@ -23,7 +29,7 @@ pub(crate) async fn invite_user_route(
 
 	banned_room_check(&services, sender_user, room_id, None, client).await?;
 
-	let invite_user::v3::InvitationRecipient::UserId { user_id } = &body.recipient else {
+	let InvitationRecipient::UserId(InviteUserId { user_id, reason }) = &body.recipient else {
 		return Err!(Request(ThreepidDenied("Third party identifiers are not implemented")));
 	};
 
@@ -61,7 +67,7 @@ pub(crate) async fn invite_user_route(
 
 	services
 		.membership
-		.invite(sender_user, user_id, room_id, body.reason.as_ref(), false)
+		.invite(sender_user, user_id, room_id, reason.as_ref(), false)
 		.boxed()
 		.await?;
 

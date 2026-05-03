@@ -4,7 +4,8 @@ use futures::StreamExt;
 use ruma::{
 	CanonicalJsonValue, OwnedRoomId, OwnedUserId, RoomId, UserId,
 	api::{
-		error::ErrorKind,
+		appservice::event::push_events,
+		error::{ErrorKind, IncompatibleRoomVersionErrorData},
 		federation::membership::{RawStrippedState, create_invite},
 	},
 	events::{
@@ -44,7 +45,9 @@ pub(crate) async fn create_invite_route(
 		.supported_room_version(&body.room_version)
 	{
 		return Err(Error::BadRequest(
-			ErrorKind::IncompatibleRoomVersion { room_version: body.room_version.clone() },
+			ErrorKind::IncompatibleRoomVersion(IncompatibleRoomVersionErrorData::new(
+				body.room_version.clone(),
+			)),
 			"Server does not support this room version.",
 		));
 	}
@@ -232,17 +235,14 @@ pub(crate) async fn create_invite_route(
 			if appservice.is_user_match(&invited_user) {
 				services
 					.appservice
-					.send_request(
-						appservice.registration.clone(),
-						ruma::api::appservice::event::push_events::v1::Request {
-							events: vec![pdu.to_format()],
-							txn_id: general_purpose::URL_SAFE_NO_PAD
-								.encode(sha256::hash(pdu.event_id.as_bytes()))
-								.into(),
-							ephemeral: Vec::new(),
-							to_device: Vec::new(),
-						},
-					)
+					.send_request(appservice.registration.clone(), push_events::v1::Request {
+						events: vec![pdu.to_format()],
+						txn_id: general_purpose::URL_SAFE_NO_PAD
+							.encode(sha256::hash(pdu.event_id.as_bytes()))
+							.into(),
+						ephemeral: Vec::new(),
+						to_device: Vec::new(),
+					})
 					.await?;
 			}
 		}

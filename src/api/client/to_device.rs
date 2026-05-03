@@ -3,7 +3,8 @@ use std::collections::BTreeMap;
 use axum::extract::State;
 use ruma::{
 	api::{
-		client::{error::ErrorKind, to_device::send_event_to_device},
+		client::to_device::send_event_to_device,
+		error::ErrorKind,
 		federation::{self, transactions::edu::DirectDeviceContent},
 	},
 	to_device::DeviceIdOrAllDevices,

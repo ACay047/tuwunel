@@ -71,7 +71,7 @@ pub(crate) async fn get_login_types_route(
 		LoginType::Token(TokenLoginType { get_login_token }),
 		LoginType::Sso(SsoLoginType {
 			identity_providers,
-			delegated_oidc_compatibility: services.config.oidc_aware_preferred,
+			oauth_aware_preferred: services.config.oidc_aware_preferred,
 		}),
 	];
 

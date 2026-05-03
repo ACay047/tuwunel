@@ -10,7 +10,12 @@ use ruma::{
 use tuwunel_core::{Error, Result, debug_warn, err, trace, utils::string::EMPTY};
 use tuwunel_service::{Services, appservice::RegistrationInfo};
 
-use super::{auth, auth::Auth, request, request::Request};
+use super::{
+	auth,
+	auth::{Auth, AuthDispatch},
+	request,
+	request::Request,
+};
 use crate::State;
 
 /// Extractor for Ruma request structs
@@ -78,6 +83,7 @@ where
 impl<T> FromRequest<State, Body> for Args<T>
 where
 	T: IncomingRequest + Debug + Send + Sync + 'static,
+	T::Authentication: AuthDispatch,
 {
 	type Rejection = Error;
 
@@ -111,7 +117,7 @@ where
 			json_body = Some(CanonicalJsonValue::Object(CanonicalJsonObject::new()));
 		}
 
-		let auth = auth::auth(services, &mut request, json_body.as_ref(), &T::METADATA).await?;
+		let auth = auth::auth::<T>(services, &mut request, json_body.as_ref()).await?;
 		Ok(Self {
 			body: make_body::<T>(services, &mut request, json_body.as_mut(), &auth)?,
 			cookie: request.cookie,

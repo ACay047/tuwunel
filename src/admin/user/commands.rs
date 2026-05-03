@@ -2,7 +2,8 @@ use std::{cmp, collections::BTreeMap};
 
 use futures::{FutureExt, StreamExt, TryStreamExt};
 use ruma::{
-	Int, OwnedDeviceId, OwnedEventId, OwnedRoomId, OwnedRoomOrAliasId, OwnedUserId, UserId,
+	Int, MilliSecondsSinceUnixEpoch, OwnedDeviceId, OwnedEventId, OwnedRoomId,
+	OwnedRoomOrAliasId, OwnedUserId, UserId,
 	events::{
 		RoomAccountDataEventType, StateEventType,
 		room::{
@@ -862,7 +863,7 @@ pub(super) async fn last_active(&self, limit: Option<usize>) -> Result {
 						.last_seen_ts
 						.map(|ts| (ts, device.last_seen_ip))
 				})
-				.ready_fold_default(cmp::max)
+				.ready_fold((MilliSecondsSinceUnixEpoch(uint!(0)), None), cmp::max)
 				.map(|(last_seen_ts, last_seen_ip)| (last_seen_ts, last_seen_ip, user_id.clone()))
 				.await
 		})

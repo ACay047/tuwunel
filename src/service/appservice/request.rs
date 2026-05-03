@@ -2,8 +2,10 @@ use std::{fmt::Debug, mem};
 
 use bytes::BytesMut;
 use ruma::api::{
-	IncomingResponse, MatrixVersion, OutgoingRequest, SupportedVersions,
-	appservice::Registration, auth_scheme::SendAccessToken,
+	IncomingResponse, OutgoingRequest,
+	appservice::Registration,
+	auth_scheme::{AuthScheme, SendAccessToken},
+	path_builder::PathBuilder,
 };
 use tuwunel_core::{Err, Result, debug_error, err, implement, trace, utils, warn};
 
@@ -19,12 +21,9 @@ pub async fn send_request<T>(
 ) -> Result<Option<T::IncomingResponse>>
 where
 	T: OutgoingRequest + Debug + Send,
+	for<'a> T::Authentication: AuthScheme<Input<'a> = SendAccessToken<'a>>,
+	for<'a> T::PathBuilder: PathBuilder<Input<'a> = ()>,
 {
-	const VERSIONS: [MatrixVersion; 1] = [MatrixVersion::V1_7];
-	let supported = SupportedVersions {
-		versions: VERSIONS.into(),
-		features: Default::default(),
-	};
 	let client = &self.services.client.appservice;
 
 	let Some(dest) = registration.url else {
@@ -39,11 +38,7 @@ where
 
 	let hs_token = registration.hs_token.as_str();
 	let mut http_request = request
-		.try_into_http_request::<BytesMut>(
-			&dest,
-			SendAccessToken::IfRequired(hs_token),
-			&supported,
-		)
+		.try_into_http_request::<BytesMut>(&dest, SendAccessToken::IfRequired(hs_token), ())
 		.map_err(|e| {
 			err!(BadServerResponse(
 				warn!(appservice = %registration.id, "Failed to find destination {dest}: {e:?}")
