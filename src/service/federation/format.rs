@@ -1,11 +1,7 @@
 use futures::future::OptionFuture;
 use ruma::{CanonicalJsonObject, CanonicalJsonValue, RoomId, RoomVersionId};
 use serde_json::value::{RawValue as RawJsonValue, to_raw_value};
-use tuwunel_core::{
-	implement,
-	matrix::pdu,
-	utils::{future::TryExtExt, result::FlatOk},
-};
+use tuwunel_core::{implement, matrix::pdu, utils::result::FlatOk};
 
 /// This does not return a full `Pdu` it is only to satisfy ruma's types.
 #[implement(super::Service)]
@@ -21,11 +17,13 @@ pub async fn format_pdu_into(
 		.flat_ok();
 
 	let query_room_version: OptionFuture<_> = room_id
-		.and_then(|room_id| {
-			room_version
-				.is_none()
-				.then(|| self.services.state.get_room_version(room_id))
-				.map(TryExtExt::ok)
+		.filter(|_| room_version.is_none())
+		.map(|room_id| async move {
+			self.services
+				.state
+				.get_room_version(&room_id)
+				.await
+				.ok()
 		})
 		.into();
 

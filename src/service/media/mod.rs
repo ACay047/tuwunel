@@ -18,7 +18,7 @@ use futures::{FutureExt, StreamExt, TryFutureExt, TryStreamExt, pin_mut};
 use http::StatusCode;
 use ruma::{
 	Mxc, OwnedMxcUri, OwnedUserId, UserId,
-	api::client::error::{ErrorKind, RetryAfter},
+	api::error::{ErrorKind, RetryAfter},
 	http_headers::ContentDisposition,
 };
 use tokio::{fs, sync::Notify};
@@ -119,7 +119,9 @@ impl Service {
 				*tokens = new_tokens - 1.0;
 			} else {
 				return Err(Error::Request(
-					ErrorKind::LimitExceeded { retry_after: None },
+					ErrorKind::LimitExceeded(ruma::api::error::LimitExceededErrorData {
+						retry_after: None,
+					}),
 					"Too many pending media creation requests.".into(),
 					StatusCode::TOO_MANY_REQUESTS,
 				));
@@ -134,9 +136,9 @@ impl Service {
 		if current_uploads >= max_uploads {
 			let retry_after = earliest_expiration.saturating_sub(now_millis());
 			return Err(Error::Request(
-				ErrorKind::LimitExceeded {
+				ErrorKind::LimitExceeded(ruma::api::error::LimitExceededErrorData {
 					retry_after: Some(RetryAfter::Delay(Duration::from_millis(retry_after))),
-				},
+				}),
 				"Maximum number of pending media uploads reached.".into(),
 				StatusCode::TOO_MANY_REQUESTS,
 			));

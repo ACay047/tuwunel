@@ -33,25 +33,26 @@ use tuwunel_service::{
 
 use crate::Ruma;
 
-/// list of safe and common non-state events to ignore if the user is ignored
+/// list of safe and common non-state events to ignore if the user is ignored.
+/// MUST be sorted by `TimelineEventType::event_type_str()` for `binary_search`.
 const IGNORED_MESSAGE_TYPES: &[TimelineEventType] = &[
-	Audio,
-	CallInvite,
-	Emote,
-	File,
-	Image,
-	KeyVerificationStart,
-	Location,
-	PollStart,
-	UnstablePollStart,
-	Beacon,
-	Reaction,
-	RoomEncrypted,
-	RoomMessage,
-	Sticker,
-	Video,
-	Voice,
-	CallNotify,
+	CallInvite,           // m.call.invite
+	KeyVerificationStart, // m.key.verification.start
+	Location,             // m.location
+	PollStart,            // m.poll.start
+	Reaction,             // m.reaction
+	RoomEncrypted,        // m.room.encrypted
+	RoomMessage,          // m.room.message
+	Sticker,              // m.sticker
+	Audio,                // org.matrix.msc1767.audio
+	Emote,                // org.matrix.msc1767.emote
+	File,                 // org.matrix.msc1767.file
+	Image,                // org.matrix.msc1767.image
+	Video,                // org.matrix.msc1767.video
+	Voice,                // org.matrix.msc3245.voice.v2
+	UnstablePollStart,    // org.matrix.msc3381.poll.start
+	Beacon,               // org.matrix.msc3672.beacon
+	CallNotify,           // org.matrix.msc4075.call.notify
 ];
 
 const LIMIT_MAX: usize = 1000;

@@ -3,7 +3,7 @@ use axum::extract::State;
 use futures::TryFutureExt;
 use ruma::{
 	RoomVersionId,
-	api::{client::error::ErrorKind, federation::membership::prepare_knock_event},
+	api::{error::ErrorKind, federation::membership::prepare_knock_event},
 	events::room::member::{MembershipState, RoomMemberEventContent},
 };
 use tuwunel_core::{Err, Error, Result, at, debug_warn, matrix::pdu::PduBuilder};

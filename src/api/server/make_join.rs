@@ -2,7 +2,7 @@ use axum::extract::State;
 use futures::{StreamExt, TryFutureExt, pin_mut};
 use ruma::{
 	OwnedUserId, RoomId, RoomVersionId, UserId,
-	api::{client::error::ErrorKind, federation::membership::prepare_join_event},
+	api::{error::ErrorKind, federation::membership::prepare_join_event},
 	events::{
 		StateEventType,
 		room::{

@@ -9,7 +9,7 @@ use futures::{
 };
 use ruma::{
 	EventId, Int, OwnedEventId, OwnedUserId,
-	api::client::error::ErrorKind::InvalidParam,
+	api::error::ErrorKind::InvalidParam,
 	events::{
 		StateEventType, TimelineEventType,
 		room::{member::MembershipState, power_levels::UserPowerLevel},
@@ -279,7 +279,7 @@ where
 
 	// v1-v5, if type is m.room.aliases:
 	if rules.authorization.special_case_room_aliases
-		&& *incoming_event.event_type() == TimelineEventType::RoomAliases
+		&& incoming_event.event_type().to_cow_str() == "m.room.aliases"
 	{
 		trace!("starting m.room.aliases check");
 		// v1-v5, if event has no state_key, reject.

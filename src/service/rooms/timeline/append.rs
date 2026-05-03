@@ -260,7 +260,7 @@ async fn append_pdu_effects(
 					.state_cache
 					.update_membership(
 						pdu.room_id(),
-						target_user_id,
+						&target_user_id,
 						content,
 						pdu.sender(),
 						stripped_state,
@@ -306,7 +306,7 @@ async fn append_pdu_effects(
 
 	if let Ok(content) = pdu.get_content::<ExtractRelatesTo>() {
 		match content.relates_to {
-			| Relation::Reply { in_reply_to } => {
+			| Relation::Reply(ruma::events::relation::Reply { in_reply_to }) => {
 				// We need to do it again here, because replies don't have
 				// event_id as a top level field
 				if let Ok(related_pducount) = self.get_pdu_count(&in_reply_to.event_id).await {

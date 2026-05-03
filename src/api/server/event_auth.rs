@@ -4,7 +4,7 @@ use axum::extract::State;
 use futures::StreamExt;
 use ruma::{
 	RoomId,
-	api::{client::error::ErrorKind, federation::authorization::get_event_authorization},
+	api::{error::ErrorKind, federation::authorization::get_event_authorization},
 };
 use tuwunel_core::{
 	Error, Result,

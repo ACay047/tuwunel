@@ -143,10 +143,13 @@ async fn send_notice<Pdu: Event>(
 
 			if !event_id_only {
 				if *event.kind() == TimelineEventType::RoomEncrypted
-					|| tweaks
-						.iter()
-						.any(|t| matches!(t, Tweak::Highlight(true) | Tweak::Sound(_)))
-				{
+					|| tweaks.iter().any(|t| {
+						matches!(
+							t,
+							Tweak::Highlight(ruma::push::HighlightTweakValue::Yes)
+								| Tweak::Sound(_)
+						)
+					}) {
 					notify.prio = NotificationPriority::High;
 				} else {
 					notify.prio = NotificationPriority::Low;

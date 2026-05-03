@@ -1,12 +1,9 @@
 use ruma::{
 	events::{
 		TimelineEventType,
-		room::{
-			aliases::RoomAliasesEventContent, message::RoomMessageEventContent,
-			redaction::RoomRedactionEventContent,
-		},
+		room::{message::RoomMessageEventContent, redaction::RoomRedactionEventContent},
 	},
-	int, owned_event_id, owned_room_alias_id, owned_room_id,
+	int, owned_event_id, owned_room_id,
 	room_version_rules::{AuthorizationRules, RoomVersionRules},
 	uint, user_id,
 };
@@ -386,104 +383,8 @@ async fn no_federate_same_server() {
 		.unwrap();
 }
 
-#[tokio::test]
-async fn room_aliases_no_state_key() {
-	let _guard = init_subscriber();
-
-	let incoming_event = to_pdu_event(
-		"ALIASES",
-		alice(),
-		TimelineEventType::RoomAliases,
-		None,
-		to_raw_json_value(&RoomAliasesEventContent::new(vec![
-			owned_room_alias_id!("#room:foo"),
-			owned_room_alias_id!("#room_alt:foo"),
-		]))
-		.unwrap(),
-		&["CREATE", "IJR", "IPOWER"],
-		&["IMB"],
-	);
-
-	let init_events = INITIAL_EVENTS();
-	let auth_events = TestStateMap::new(&init_events);
-	let fetch_state = auth_events.fetch_state_fn();
-
-	// Cannot accept `m.room.aliases` without state key.
-	check_state_dependent_auth_rules(&RoomVersionRules::V3, &incoming_event, &fetch_state)
-		.await
-		.unwrap_err();
-
-	// `m.room.aliases` is not checked since v6.
-	check_state_dependent_auth_rules(&RoomVersionRules::V8, &incoming_event, &fetch_state)
-		.await
-		.unwrap();
-}
-
-#[tokio::test]
-async fn room_aliases_other_server() {
-	let _guard = init_subscriber();
-
-	let incoming_event = to_pdu_event(
-		"ALIASES",
-		alice(),
-		TimelineEventType::RoomAliases,
-		Some("bar"),
-		to_raw_json_value(&RoomAliasesEventContent::new(vec![
-			owned_room_alias_id!("#room:bar"),
-			owned_room_alias_id!("#room_alt:bar"),
-		]))
-		.unwrap(),
-		&["CREATE", "IJR", "IPOWER"],
-		&["IMB"],
-	);
-
-	let init_events = INITIAL_EVENTS();
-	let auth_events = TestStateMap::new(&init_events);
-	let fetch_state = auth_events.fetch_state_fn();
-
-	// Cannot accept `m.room.aliases` with different server name than sender.
-	check_state_dependent_auth_rules(&RoomVersionRules::V3, &incoming_event, &fetch_state)
-		.await
-		.unwrap_err();
-
-	// `m.room.aliases` is not checked since v6.
-	check_state_dependent_auth_rules(&RoomVersionRules::V8, &incoming_event, &fetch_state)
-		.await
-		.unwrap();
-}
-
-#[tokio::test]
-async fn room_aliases_same_server() {
-	let _guard = init_subscriber();
-
-	let incoming_event = to_pdu_event(
-		"ALIASES",
-		alice(),
-		TimelineEventType::RoomAliases,
-		Some("foo"),
-		to_raw_json_value(&RoomAliasesEventContent::new(vec![
-			owned_room_alias_id!("#room:foo"),
-			owned_room_alias_id!("#room_alt:foo"),
-		]))
-		.unwrap(),
-		&["CREATE", "IJR", "IPOWER"],
-		&["IMB"],
-	);
-
-	let init_events = INITIAL_EVENTS();
-	let auth_events = TestStateMap::new(&init_events);
-	let fetch_state = auth_events.fetch_state_fn();
-
-	// Accept `m.room.aliases` with same server name as sender.
-	check_state_dependent_auth_rules(&RoomVersionRules::V3, &incoming_event, &fetch_state)
-		.await
-		.unwrap();
-
-	// `m.room.aliases` is not checked since v6.
-	check_state_dependent_auth_rules(&RoomVersionRules::V8, &incoming_event, &fetch_state)
-		.await
-		.unwrap();
-}
+// `m.room.aliases` event type and content removed from ruma upstream;
+// pre-v6 alias auth-rule tests are no longer expressible.
 
 #[tokio::test]
 async fn sender_not_in_room() {

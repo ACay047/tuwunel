@@ -3,10 +3,8 @@ use http::StatusCode;
 use http_body_util::Full;
 use ruma::api::{
 	OutgoingResponse,
-	client::{
-		error::{ErrorBody, ErrorKind},
-		uiaa::UiaaResponse,
-	},
+	client::uiaa::UiaaResponse,
+	error::{ErrorBody, ErrorKind},
 };
 
 use super::Error;
@@ -36,12 +34,12 @@ impl From<Error> for UiaaResponse {
 			return Self::AuthResponse(uiaainfo);
 		}
 
-		let body = ErrorBody::Standard {
+		let body = ErrorBody::Standard(ruma::api::error::StandardErrorBody {
 			kind: error.kind(),
 			message: error.message(),
-		};
+		});
 
-		Self::MatrixError(ruma::api::client::error::Error::new(error.status_code(), body))
+		Self::MatrixError(ruma::api::error::Error::new(error.status_code(), body))
 	}
 }
 
@@ -88,15 +86,16 @@ pub(super) fn bad_request_code(kind: &ErrorKind) -> StatusCode {
 	}
 }
 
-pub(super) fn ruma_error_message(error: &ruma::api::client::error::Error) -> String {
-	if let ErrorBody::Standard { message, .. } = &error.body {
+pub(super) fn ruma_error_message(error: &ruma::api::error::Error) -> String {
+	if let ErrorBody::Standard(ruma::api::error::StandardErrorBody { message, .. }) = &error.body
+	{
 		return message.clone();
 	}
 
 	format!("{error}")
 }
 
-pub(super) fn ruma_error_kind(e: &ruma::api::client::error::Error) -> &ErrorKind {
+pub(super) fn ruma_error_kind(e: &ruma::api::error::Error) -> &ErrorKind {
 	e.error_kind().unwrap_or(&ErrorKind::Unknown)
 }
 

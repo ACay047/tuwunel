@@ -4,7 +4,7 @@ use futures::StreamExt;
 use ruma::{
 	CanonicalJsonValue, OwnedRoomId, OwnedUserId, RoomId, UserId,
 	api::{
-		client::error::ErrorKind,
+		error::ErrorKind,
 		federation::membership::{RawStrippedState, create_invite},
 	},
 	events::{

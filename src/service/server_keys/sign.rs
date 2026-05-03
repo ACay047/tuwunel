@@ -74,9 +74,9 @@ pub fn hash_and_sign_event(
 		&room_version_rules.redaction,
 	)
 	.map_err(|e| {
-		use ruma::signatures::Error::PduSize;
+		use ruma::signatures::JsonError::PduTooLarge;
 		match e {
-			| PduSize => {
+			| PduTooLarge => {
 				err!(Request(TooLarge("PDU exceeds 65535 bytes")))
 			},
 			| _ => err!(Request(Unknown(warn!("Signing event failed: {e}")))),

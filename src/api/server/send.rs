@@ -11,7 +11,7 @@ use ruma::{
 	CanonicalJsonObject, OwnedEventId, OwnedRoomId, OwnedUserId, RoomId, ServerName,
 	TransactionId, UserId,
 	api::{
-		client::error::ErrorKind,
+		error::ErrorKind,
 		federation::transactions::{
 			edu::{
 				DeviceListUpdateContent, DirectDeviceContent, Edu, PresenceContent,

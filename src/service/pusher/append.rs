@@ -73,10 +73,10 @@ pub(crate) async fn append_pdu(&self, pdu_id: RawPduId, pdu: &Pdu) -> Result {
 		&& self
 			.services
 			.users
-			.is_active_local(target_user_id)
+			.is_active_local(&target_user_id)
 			.await
 	{
-		push_target.insert(target_user_id.to_owned());
+		push_target.insert(target_user_id);
 	}
 
 	let serialized = pdu.to_format();
@@ -102,9 +102,12 @@ pub(crate) async fn append_pdu(&self, pdu_id: RawPduId, pdu: &Pdu) -> Result {
 			.iter()
 			.any(|action| matches!(action, Action::Notify));
 
-		let highlight = actions
-			.iter()
-			.any(|action| matches!(action, Action::SetTweak(Tweak::Highlight(true))));
+		let highlight = actions.iter().any(|action| {
+			matches!(
+				action,
+				Action::SetTweak(Tweak::Highlight(ruma::push::HighlightTweakValue::Yes))
+			)
+		});
 
 		let increment_notify =
 			notify.then_async(|| self.increment_notificationcount(pdu.room_id(), user));

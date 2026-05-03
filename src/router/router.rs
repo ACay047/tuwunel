@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{Router, response::IntoResponse, routing::get};
 use http::{StatusCode, Uri};
-use ruma::api::client::error::ErrorKind;
+use ruma::api::error::ErrorKind;
 use tuwunel_api::router::{state, state::Guard};
 use tuwunel_core::Error;
 use tuwunel_service::Services;

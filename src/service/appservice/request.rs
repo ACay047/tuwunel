@@ -2,8 +2,8 @@ use std::{fmt::Debug, mem};
 
 use bytes::BytesMut;
 use ruma::api::{
-	IncomingResponse, MatrixVersion, OutgoingRequest, SendAccessToken, SupportedVersions,
-	appservice::Registration,
+	IncomingResponse, MatrixVersion, OutgoingRequest, SupportedVersions,
+	appservice::Registration, auth_scheme::SendAccessToken,
 };
 use tuwunel_core::{Err, Result, debug_error, err, implement, trace, utils, warn};
 

@@ -256,7 +256,9 @@ impl Service {
 	}
 
 	async fn handle_response(&self, content: RoomMessageEventContent) -> Result {
-		let Some(Relation::Reply { in_reply_to }) = content.relates_to.as_ref() else {
+		let Some(Relation::Reply(ruma::events::relation::Reply { in_reply_to })) =
+			content.relates_to.as_ref()
+		else {
 			return Ok(());
 		};
 

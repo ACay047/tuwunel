@@ -6,9 +6,9 @@ use std::{
 use futures::{TryStreamExt, pin_mut};
 use ruma::{
 	CanonicalJsonValue, DeviceId, OwnedDeviceId, OwnedUserId, UserId,
-	api::client::{
+	api::{
+		client::uiaa::{AuthData, AuthType, Password, UiaaInfo, UserIdentifier},
 		error::{ErrorKind, StandardErrorBody},
-		uiaa::{AuthData, AuthType, Password, UiaaInfo, UserIdentifier},
 	},
 };
 use tuwunel_core::{
@@ -92,7 +92,7 @@ pub async fn try_auth(
 	match auth {
 		// Find out what the user completed
 		| AuthData::Password(Password { identifier, password, user, .. }) => {
-			let username = extract!(identifier, x in Some(UserIdentifier::UserIdOrLocalpart(x)))
+			let username = extract!(identifier, x in Some(UserIdentifier::Matrix(ruma::api::client::uiaa::MatrixUserIdentifier { user: x, .. })))
 				.or_else(|| cfg!(feature = "element_hacks").and(user.as_ref()))
 				.ok_or(err!(Request(Unrecognized("Identifier type not recognized."))))?;
 

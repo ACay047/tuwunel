@@ -2,7 +2,7 @@
 
 use std::ops::Deref;
 
-use ruma::serde::{PartialEqAsRefStr, StringEnum, from_raw_json_value};
+use ruma::serde::{StringEnum, from_raw_json_value};
 use serde::Deserialize;
 use tuwunel_core::{Error, Result, err, matrix::Event};
 
@@ -41,7 +41,7 @@ impl<E: Event> Deref for RoomJoinRulesEvent<E> {
 }
 
 /// The possible values for the join rule of a room.
-#[derive(Clone, StringEnum, PartialEqAsRefStr)]
+#[derive(Clone, StringEnum)]
 #[ruma_enum(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum JoinRule {
@@ -63,8 +63,6 @@ pub enum JoinRule {
 	#[doc(hidden)]
 	_Custom(PrivOwnedStr),
 }
-
-impl Eq for JoinRule {}
 
 // Wrapper around `Box<str>` that cannot be used in a meaningful way outside of
 // this crate. Used for string enums because their `_Custom` variant can't be

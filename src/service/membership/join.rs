@@ -13,7 +13,7 @@ use futures::{
 use ruma::{
 	CanonicalJsonObject, CanonicalJsonValue, OwnedEventId, OwnedServerName, OwnedUserId, RoomId,
 	RoomOrAliasId, RoomVersionId, UserId,
-	api::{client::error::ErrorKind, federation},
+	api::{error::ErrorKind, federation},
 	canonical_json::to_canonical_value,
 	events::{
 		StateEventType,

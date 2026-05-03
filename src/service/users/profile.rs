@@ -1,8 +1,8 @@
 use futures::{FutureExt, Stream, StreamExt, TryFutureExt, TryStreamExt, future::join3};
 use ruma::{
 	MxcUri, OwnedMxcUri, OwnedRoomId, UserId,
-	api::client::profile::ProfileFieldValue,
 	events::room::member::{MembershipState, RoomMemberEventContent},
+	profile::ProfileFieldValue,
 	serde::Raw,
 };
 use tuwunel_core::{

@@ -131,7 +131,7 @@ pub async fn force_state(
 					.state_cache
 					.update_membership(
 						room_id,
-						user_id,
+						&user_id,
 						membership_event,
 						&pdu.sender,
 						None,

@@ -8,9 +8,9 @@ use ruma::{
 	int,
 	room_version_rules::AuthorizationRules,
 	serde::{
-		DebugAsRefStr, DisplayAsRefStr, JsonObject, OrdAsRefStr, PartialEqAsRefStr,
-		PartialOrdAsRefStr, deserialize_v1_powerlevel, from_raw_json_value,
-		vec_deserialize_int_powerlevel_values, vec_deserialize_v1_powerlevel_values,
+		DebugAsRefStr, DisplayAsRefStr, JsonObject, OrdAsRefStr, deserialize_v1_powerlevel,
+		from_raw_json_value, vec_deserialize_int_powerlevel_values,
+		vec_deserialize_v1_powerlevel_values,
 	},
 };
 use serde::de::DeserializeOwned;
@@ -322,16 +322,7 @@ where
 
 /// Fields in the `content` of an `m.room.power_levels` event with an integer
 /// value.
-#[derive(
-	DebugAsRefStr,
-	Clone,
-	Copy,
-	DisplayAsRefStr,
-	PartialEqAsRefStr,
-	Eq,
-	PartialOrdAsRefStr,
-	OrdAsRefStr,
-)]
+#[derive(DebugAsRefStr, Clone, Copy, DisplayAsRefStr, PartialEq, Eq, OrdAsRefStr)]
 #[non_exhaustive]
 pub enum RoomPowerLevelsIntField {
 	/// `users_default`

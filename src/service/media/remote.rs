@@ -5,10 +5,8 @@ use ruma::{
 	Mxc, ServerName, UserId,
 	api::{
 		OutgoingRequest,
-		client::{
-			error::ErrorKind::{NotFound, Unrecognized},
-			media,
-		},
+		client::media,
+		error::ErrorKind::{NotFound, Unrecognized},
 		federation,
 		federation::authenticated_media::{Content, FileOrLocation},
 	},

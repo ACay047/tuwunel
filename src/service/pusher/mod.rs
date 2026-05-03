@@ -261,12 +261,15 @@ pub async fn get_actions<'a>(
 		rules: power_levels.rules.clone(),
 	});
 
-	let ctx = PushConditionRoomCtx {
-		room_id: room_id.to_owned(),
-		member_count: room_joined_count,
-		user_id: user.to_owned(),
+	let ctx = PushConditionRoomCtx::new(
+		room_id.to_owned(),
+		room_joined_count,
+		user.to_owned(),
 		user_display_name,
-		power_levels,
+	);
+	let ctx = match power_levels {
+		| Some(pl) => ctx.with_power_levels(pl),
+		| None => ctx,
 	};
 
 	ruleset.get_actions(pdu, &ctx).await

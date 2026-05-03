@@ -72,7 +72,7 @@ async fn should_append_to(&self, appservice: &RegistrationInfo, pdu: &Pdu) -> bo
 			.state_key
 			.as_ref()
 			.and_then(|state_key| UserId::parse(state_key.as_str()).ok())
-			.is_some_and(|user_id| appservice.is_user_match(user_id))
+			.is_some_and(|user_id| appservice.is_user_match(&user_id))
 	{
 		return true;
 	}

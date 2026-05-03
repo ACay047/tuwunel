@@ -10,7 +10,7 @@ use axum::{
 };
 use futures::FutureExt;
 use http::{Method, StatusCode, Uri};
-use ruma::api::client::error::ErrorKind;
+use ruma::api::error::ErrorKind;
 use tokio::{sync::Notify, task, time::sleep};
 use tracing::Span;
 use tuwunel_core::{Error, Result, debug, debug_error, debug_warn, defer, error, trace};

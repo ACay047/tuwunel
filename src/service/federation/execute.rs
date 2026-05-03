@@ -7,8 +7,9 @@ use reqwest::{Client, Method, Request, Response, Url};
 use ruma::{
 	CanonicalJsonName, CanonicalJsonObject, CanonicalJsonValue, ServerName, ServerSigningKeyId,
 	api::{
-		AuthScheme, EndpointError, IncomingResponse, MatrixVersion, OutgoingRequest,
-		SendAccessToken, SupportedVersions, client::error::Error as RumaError,
+		EndpointError, IncomingResponse, MatrixVersion, OutgoingRequest, SupportedVersions,
+		auth_scheme::{AuthScheme, SendAccessToken},
+		error::Error as RumaError,
 		federation::authentication::XMatrix,
 	},
 	serde::Base64,
