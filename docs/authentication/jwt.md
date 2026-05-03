@@ -150,7 +150,7 @@ user on the server.
 `format` selects how `key` is interpreted. `algorithm` selects the JWT
 signing algorithm. The two must agree.
 
-| `format` | `algorithm` examples | `key` content |
+| Format | Algorithm | Key content |
 |---|---|---|
 | `HMAC` (default) | `HS256`, `HS384`, `HS512` | Plaintext shared secret. |
 | `B64HMAC` | `HS256`, `HS384`, `HS512` | Base64-encoded shared secret. Use this when the secret contains non-printable bytes. |
