@@ -25,6 +25,8 @@ use crate::{Ruma, router::auth_uiaa};
 ///
 /// - Requires UIAA to verify password
 /// - For OIDC devices, requires OAuth re-authentication via SSO (MSC4312)
+/// - For appservices with `device_management` enabled, UIAA is skipped even
+///   when cross-signing keys already exist (MSC4190)
 pub(crate) async fn upload_signing_keys_route(
 	State(services): State<crate::State>,
 	body: Ruma<upload_signing_keys::v3::Request>,
@@ -51,6 +53,21 @@ pub(crate) async fn upload_signing_keys_route(
 
 		// Some of the keys weren't found, so we let them upload
 		debug!("Skipping UIA as per MSC3967: user had no existing keys");
+		return persist_signing_keys(&services, &body).await;
+	}
+
+	// MSC4190: appservices with device_management may replace existing
+	// cross-signing keys without UIAA.
+	if body
+		.appservice_info
+		.as_ref()
+		.is_some_and(|appservice| appservice.registration.device_management)
+	{
+		debug!(
+			"Skipping UIAA for {sender_user} as this is from an appservice and MSC4190 is \
+			 enabled"
+		);
+
 		return persist_signing_keys(&services, &body).await;
 	}
 
