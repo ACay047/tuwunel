@@ -20,16 +20,16 @@ use tuwunel_core::{Err, Result, utils::future::TryExtExt};
 
 use crate::{ClientIp, Ruma};
 
-type ProfileResponse = get_profile_information::v1::Response;
+pub(super) type ProfileResponse = get_profile_information::v1::Response;
 
 /// Pull a string field out of a federation profile-info response. The body
 /// shape switched from explicit fields to a flat `BTreeMap<String, JsonValue>`
 /// once extended profile fields stabilised.
-fn profile_str<'a>(resp: &'a ProfileResponse, field: &str) -> Option<&'a str> {
+pub(super) fn profile_str<'a>(resp: &'a ProfileResponse, field: &str) -> Option<&'a str> {
 	resp.get(field).and_then(JsonValue::as_str)
 }
 
-fn profile_mxc<'a>(resp: &'a ProfileResponse, field: &str) -> Option<&'a MxcUri> {
+pub(super) fn profile_mxc<'a>(resp: &'a ProfileResponse, field: &str) -> Option<&'a MxcUri> {
 	profile_str(resp, field).and_then(|s| <&MxcUri>::try_from(s).ok())
 }
 

@@ -44,7 +44,7 @@ pub(crate) use self::uiaa::auth_uiaa;
 use self::{appservice::auth_appservice, server::auth_server};
 use super::request::Request;
 
-enum Token {
+pub(super) enum Token {
 	Appservice(Box<RegistrationInfo>),
 	User((OwnedUserId, OwnedDeviceId, Option<SystemTime>)),
 	Expired((OwnedUserId, OwnedDeviceId)),
@@ -106,7 +106,7 @@ where
 /// used to route through `auth()` and to identify the unauthenticated case
 /// inside [`check_auth_still_required`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Scheme {
+pub(super) enum Scheme {
 	None,
 	AccessToken,
 	AccessTokenOptional,

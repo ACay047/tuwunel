@@ -64,20 +64,16 @@ pub(crate) async fn create_join_event_v2_route(
 		})
 		.await;
 
-	let create_join_event::v1::RoomState { auth_chain, state, event } =
+	let mut room_state =
 		create_join_event(&services, origin, room_id, &body.pdu, members_omitted)
 			.boxed()
 			.await?;
 
-	Ok(create_join_event::v2::Response {
-		room_state: create_join_event::v2::RoomState {
-			auth_chain,
-			state,
-			event,
-			servers_in_room,
-			members_omitted,
-		},
-	})
+	room_state.members_omitted = members_omitted;
+	room_state.servers_in_room =
+		servers_in_room.map(|servers| servers.into_iter().map(Into::into).collect());
+
+	Ok(create_join_event::v2::Response { room_state })
 }
 
 async fn create_join_event(
@@ -86,7 +82,7 @@ async fn create_join_event(
 	room_id: &RoomId,
 	pdu: &RawJsonValue,
 	omit_members: bool,
-) -> Result<create_join_event::v1::RoomState> {
+) -> Result<create_join_event::v2::RoomState> {
 	if !services.metadata.exists(room_id).await {
 		return Err!(Request(NotFound("Room is unknown to this server.")));
 	}
@@ -369,5 +365,10 @@ async fn create_join_event(
 		.boxed()
 		.await?;
 
-	Ok(create_join_event::v1::RoomState { auth_chain, state, event })
+	Ok(create_join_event::v2::RoomState {
+		auth_chain,
+		state,
+		event,
+		..Default::default()
+	})
 }

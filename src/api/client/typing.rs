@@ -28,9 +28,9 @@ pub(crate) async fn create_typing_event_route(
 	}
 
 	match body.state {
-		| Typing::Yes(duration) => {
+		| Typing::Yes(info) => {
 			let duration = Ord::clamp(
-				duration
+				info.timeout
 					.as_millis()
 					.try_into()
 					.unwrap_or(u64::MAX),

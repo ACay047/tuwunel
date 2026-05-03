@@ -2,7 +2,10 @@ use axum::extract::State;
 use futures::{FutureExt, TryFutureExt, TryStreamExt};
 use ruma::{
 	OwnedEventId, OwnedRoomAliasId, RoomId, UserId,
-	api::client::state::{get_state_event_for_key, get_state_events, send_state_event},
+	api::client::state::{
+		get_state_event_for_key::{self, v3::StateEventFormat},
+		get_state_events, send_state_event,
+	},
 	events::{
 		AnyStateEventContent, StateEventType,
 		room::{
@@ -131,26 +134,25 @@ pub(crate) async fn get_state_events_for_key_route(
 			))))
 		})?;
 
-	let event_format = body
-		.format
-		.as_deref()
-		.is_some_and(|f| f.eq_ignore_ascii_case("event"));
-
-	Ok(get_state_event_for_key::v3::Response {
-		content: event_format.or(|| event.get_content_as_value()),
-		event: event_format.then(|| {
-			json!({
-				"content": event.content(),
-				"event_id": event.event_id(),
-				"origin_server_ts": event.origin_server_ts(),
-				"room_id": event.room_id(),
-				"sender": event.sender(),
-				"state_key": event.state_key(),
-				"type": event.kind(),
-				"unsigned": event.unsigned(),
-			})
+	let event_or_content = match body.format {
+		| StateEventFormat::Event => json!({
+			"content": event.content(),
+			"event_id": event.event_id(),
+			"origin_server_ts": event.origin_server_ts(),
+			"room_id": event.room_id(),
+			"sender": event.sender(),
+			"state_key": event.state_key(),
+			"type": event.kind(),
+			"unsigned": event.unsigned(),
 		}),
-	})
+
+		| _ => event.get_content_as_value(),
+	};
+
+	let event_or_content =
+		serde_json::value::to_raw_value(&event_or_content).expect("serializable JSON value");
+
+	Ok(get_state_event_for_key::v3::Response::new(event_or_content))
 }
 
 /// # `GET /_matrix/client/v3/rooms/{roomid}/state/{eventType}`

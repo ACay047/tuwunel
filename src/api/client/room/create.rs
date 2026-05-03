@@ -9,7 +9,7 @@ use ruma::{
 	api::client::room::{
 		self,
 		create_room::{
-			self,
+			self, RoomPowerLevelsContentOverride,
 			v3::{CreationContent, RoomPreset},
 		},
 	},
@@ -644,7 +644,7 @@ async fn create_create_event_legacy(
 /// creates the power_levels_content for the PDU builder
 fn default_power_levels_content(
 	version_rules: &RoomVersionRules,
-	power_level_content_override: Option<&Raw<RoomPowerLevelsEventContent>>,
+	power_level_content_override: Option<&Raw<RoomPowerLevelsContentOverride>>,
 	visibility: &room::Visibility,
 	users: BTreeMap<OwnedUserId, Int>,
 ) -> Result<serde_json::Value> {

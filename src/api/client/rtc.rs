@@ -39,7 +39,7 @@ pub(crate) fn get_transports(services: &Services) -> Result<Vec<RtcTransport>> {
 				.cloned()
 				.ok_or_else(|| err!("`rtc_transport` is not a valid object"))?;
 
-			RtcTransport::new(focus_type, transport).map_err(Into::into)
+			RtcTransport::new(focus_type.to_owned(), transport).map_err(Into::into)
 		})
 		.map(|transport: Result<_>| {
 			transport.map_err(|e| {
@@ -52,7 +52,13 @@ pub(crate) fn get_transports(services: &Services) -> Result<Vec<RtcTransport>> {
 				.well_known
 				.livekit_url
 				.iter()
-				.map(|livekit_url| Ok(RtcTransport::livekit(livekit_url.clone()))),
+				.map(|livekit_url| {
+					// MSC4143 split out a typed `LivekitMultiSfuTransport`; this legacy
+					// single-URL config maps to a custom transport for now.
+					let mut data = serde_json::Map::new();
+					data.insert("livekit_service_url".into(), Value::String(livekit_url.clone()));
+					RtcTransport::new("livekit".to_owned(), data).map_err(Into::into)
+				}),
 		)
 		.collect::<Result<_>>()
 		.inspect_err(inspect_log)

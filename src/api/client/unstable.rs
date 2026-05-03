@@ -6,16 +6,18 @@ use ruma::{
 		client::{
 			membership::mutual_rooms,
 			profile::{
-				ProfileFieldName, ProfileFieldValue, delete_profile_field, delete_timezone_key,
-				get_profile_field, get_timezone_key, set_profile_field, set_timezone_key,
+				delete_profile_field, delete_timezone_key, get_profile_field, get_timezone_key,
+				set_profile_field, set_timezone_key,
 			},
 		},
 		federation,
 	},
 	presence::PresenceState,
+	profile::{ProfileFieldName, ProfileFieldValue},
 };
 use tuwunel_core::{Err, Result, err};
 
+use super::profile::{profile_mxc, profile_str};
 use crate::{ClientIp, Ruma};
 
 /// # `GET /_matrix/client/unstable/uk.half-shot.msc2666/user/mutual_rooms`
@@ -284,23 +286,22 @@ pub(crate) async fn get_timezone_key_route(
 					.await?;
 			}
 
+			let tz = profile_str(&response, "m.tz");
 			services
 				.users
-				.set_displayname(&body.user_id, response.displayname.as_deref());
+				.set_displayname(&body.user_id, profile_str(&response, "displayname"));
 
 			services
 				.users
-				.set_avatar_url(&body.user_id, response.avatar_url.as_deref());
+				.set_avatar_url(&body.user_id, profile_mxc(&response, "avatar_url"));
 
 			services
 				.users
-				.set_blurhash(&body.user_id, response.blurhash.as_deref());
+				.set_blurhash(&body.user_id, profile_str(&response, "blurhash"));
 
-			services
-				.users
-				.set_timezone(&body.user_id, response.tz.as_deref());
+			services.users.set_timezone(&body.user_id, tz);
 
-			return Ok(get_timezone_key::unstable::Response { tz: response.tz });
+			return Ok(get_timezone_key::unstable::Response { tz: tz.map(str::to_owned) });
 		}
 	}
 
@@ -347,26 +348,23 @@ pub(crate) async fn get_profile_field_route(
 
 			services
 				.users
-				.set_displayname(&body.user_id, response.displayname.as_deref());
+				.set_displayname(&body.user_id, profile_str(&response, "displayname"));
 
 			services
 				.users
-				.set_avatar_url(&body.user_id, response.avatar_url.as_deref());
+				.set_avatar_url(&body.user_id, profile_mxc(&response, "avatar_url"));
 
 			services
 				.users
-				.set_blurhash(&body.user_id, response.blurhash.as_deref());
+				.set_blurhash(&body.user_id, profile_str(&response, "blurhash"));
 
 			services
 				.users
-				.set_timezone(&body.user_id, response.tz.as_deref());
+				.set_timezone(&body.user_id, profile_str(&response, "m.tz"));
 
-			let value = response
-				.custom_profile_fields
-				.get(body.field.as_str())
-				.ok_or_else(|| {
-					err!(Request(NotFound("The requested profile key does not exist.")))
-				})?;
+			let value = response.get(body.field.as_str()).ok_or_else(|| {
+				err!(Request(NotFound("The requested profile key does not exist.")))
+			})?;
 
 			services
 				.users

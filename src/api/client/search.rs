@@ -174,7 +174,7 @@ async fn category_room_events(
 		results,
 		state,
 		highlights,
-		groups: BTreeMap::new(), // TODO
+		groups: Default::default(), // TODO
 	})
 }
 

@@ -5,7 +5,7 @@ use ruma::api::client::discovery::{
 };
 use tuwunel_core::{Err, Result};
 
-use crate::{Ruma, client::rtc};
+use crate::Ruma;
 
 /// # `GET /.well-known/matrix/client`
 ///
@@ -22,12 +22,9 @@ pub(crate) async fn well_known_client(
 		},
 	};
 
-	let transports = rtc::get_transports(&services)?;
-
-	Ok(discover_homeserver::Response {
-		rtc_foci: transports,
-		..discover_homeserver::Response::new(homeserver)
-	})
+	// TODO: re-attach the MSC4143 RTC foci once tuwunel's `RtcTransport`
+	// config is mapped onto upstream's typed `RtcFocusInfo`.
+	Ok(discover_homeserver::Response::new(homeserver))
 }
 
 /// # `GET /.well-known/matrix/support`

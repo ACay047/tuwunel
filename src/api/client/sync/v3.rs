@@ -263,7 +263,7 @@ async fn build_empty_response(
 			.await
 			.unwrap_or_default(),
 
-		..sync_events::v3::Response::new(to_small_string(next_batch))
+		..sync_events::v3::Response::new(next_batch.to_string())
 	}
 }
 
@@ -482,7 +482,7 @@ async fn build_sync_events(
 		device_one_time_keys_count: device_one_time_keys_count.unwrap_or_default(),
 		// Fallback keys are not yet supported
 		device_unused_fallback_key_types: None,
-		next_batch: to_small_string(next_batch),
+		next_batch: next_batch.to_string(),
 		presence: Presence { events: presence_events },
 		rooms: Rooms {
 			leave: left_rooms,
@@ -576,7 +576,7 @@ async fn handle_left_room(
 		// For rejected invites, deleted, missing, or broken room state this is the last
 		// resort to convey a the minimum of information to the client.
 		let event = PduEvent {
-			event_id: EventId::new(services.globals.server_name()),
+			event_id: EventId::new_v1(services.globals.server_name()),
 			origin_server_ts: utils::millis_since_unix_epoch().try_into()?,
 			kind: RoomMember,
 			state_key: Some(sender_user.as_str().into()),
