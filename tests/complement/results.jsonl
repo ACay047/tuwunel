@@ -202,10 +202,10 @@
 {"Action":"pass","Test":"TestJoinFederatedRoomWithUnverifiableEvents//send_join_response_with_state_with_unverifiable_auth_events_shouldn't_block_room_join"}
 {"Action":"pass","Test":"TestJoinFederatedRoomWithUnverifiableEvents//send_join_response_with_unobtainable_keys_shouldn't_block_room_join"}
 {"Action":"pass","Test":"TestJoinViaRoomIDAndServerName"}
-{"Action":"fail","Test":"TestJson"}
-{"Action":"fail","Test":"TestJson/Parallel"}
+{"Action":"pass","Test":"TestJson"}
+{"Action":"pass","Test":"TestJson/Parallel"}
 {"Action":"pass","Test":"TestJson/Parallel/Invalid_JSON_special_values"}
-{"Action":"fail","Test":"TestJson/Parallel/Invalid_numerical_values"}
+{"Action":"pass","Test":"TestJson/Parallel/Invalid_numerical_values"}
 {"Action":"fail","Test":"TestJumpToDateEndpoint"}
 {"Action":"fail","Test":"TestJumpToDateEndpoint/parallel"}
 {"Action":"fail","Test":"TestJumpToDateEndpoint/parallel/federation"}
