@@ -64,6 +64,44 @@ performance. See <https://btrfs.readthedocs.io/en/latest/Compression.html#compat
 > buffered writes and leads to no compression even if force compression is set.
 > Currently nodatasum and compression don’t work together.
 
+### ZFS
+
+ZFS has several quirks that interact badly with RocksDB defaults. Apply both
+the Tuwunel config changes and the dataset properties below.
+
+In `tuwunel.toml`:
+
+- `rocksdb_direct_io = false`. OpenZFS prior to 2.3 silently ignored
+  `O_DIRECT` and fell back to buffered. OpenZFS 2.3+ honors `O_DIRECT` only
+  when requests are page-aligned and a multiple of the recordsize, which
+  RocksDB cannot guarantee.
+- `rocksdb_allow_fallocate = false`. OpenZFS does not implement
+  `fallocate(2)` preallocation; only `FALLOC_FL_PUNCH_HOLE` and
+  `FALLOC_FL_ZERO_RANGE` are supported.
+- Leave `rocksdb_optimize_for_spinning_disks = false` on NVMe or SSD pools,
+  even when running on ZFS.
+
+On the dataset hosting `database_path`:
+
+| Property | Value | Reason |
+|---|---|---|
+| `recordsize` | `128K` (or `64K`) | Match RocksDB's working set. `16K` causes severe write amplification on compaction. |
+| `primarycache` | `metadata` | Tuwunel's block cache already serves data; ARC caching of data duplicates RAM. |
+| `compression` | `off` | RocksDB SSTs are already zstd-compressed by Tuwunel. |
+| `atime` | `off` | Avoid an FS write per read. |
+| `logbias` | `throughput` | Route ZIL through the normal txg path, which suits append-only WAL traffic. |
+
+`recordsize` takes effect only on files written after the property is
+changed. After adjusting it, dump the database (offline copy out, wipe the
+dataset, copy back) so existing SSTs adopt the new recordsize. Without a
+dump-and-reload, compaction will gradually rewrite into the new recordsize
+over weeks; pre-existing files keep the old size in the meantime.
+
+For sync write latency, in order of preference: a separate SLOG vdev, then
+`logbias=throughput`, then `sync=disabled` (only if you accept that a host
+crash may discard the WAL tail; Tuwunel recovers cleanly from this via
+`rocksdb_recovery_mode=1`, the default).
+
 ### Files in database
 
 Do not touch any of the files in the database directory. This must be said due
