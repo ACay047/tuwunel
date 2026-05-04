@@ -27,10 +27,7 @@ use ruma::{
 		},
 		client::{
 			directory::get_public_rooms,
-			profile::{
-				get_avatar_url, get_display_name, get_profile, get_profile_field,
-				get_timezone_key,
-			},
+			profile::{get_avatar_url, get_display_name, get_profile, get_profile_field},
 			voip::get_turn_server_info,
 		},
 		error::{ErrorKind, UnknownTokenErrorData},
@@ -372,8 +369,7 @@ where
 	let is_profile = id == TypeId::of::<get_profile::v3::Request>()
 		|| id == TypeId::of::<get_profile_field::v3::Request>()
 		|| id == TypeId::of::<get_display_name::v3::Request>()
-		|| id == TypeId::of::<get_avatar_url::v3::Request>()
-		|| id == TypeId::of::<get_timezone_key::unstable::Request>();
+		|| id == TypeId::of::<get_avatar_url::v3::Request>();
 
 	let is_public_rooms = id == TypeId::of::<get_public_rooms::v3::Request>();
 

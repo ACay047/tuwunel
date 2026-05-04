@@ -51,7 +51,7 @@ static VERSIONS: [&str; 17] = [
 	"v1.15",  /* custom profile fields */
 ];
 
-static UNSTABLE_FEATURES: [&str; 25] = [
+static UNSTABLE_FEATURES: [&str; 27] = [
 	"org.matrix.e2e_cross_signing",
 	// private read receipts (https://github.com/matrix-org/matrix-spec-proposals/pull/2285)
 	"org.matrix.msc2285.stable",
@@ -78,10 +78,13 @@ static UNSTABLE_FEATURES: [&str; 25] = [
 	"org.matrix.msc3916.stable",
 	// intentional mentions (https://github.com/matrix-org/matrix-spec-proposals/pull/3952)
 	"org.matrix.msc3952_intentional_mentions",
-	// Extending User Profile API with Key:Value Pairs (https://github.com/matrix-org/matrix-spec-proposals/pull/4133)
+	// MSC4133 (custom profile fields) and MSC4175 (m.tz) stabilized in
+	// Matrix 1.16; advertise the historical unstable prefixes alongside
+	// the post-merge `.stable` flags for clients that haven't migrated.
 	"uk.tcpip.msc4133",
-	// Profile field for user time zone (https://github.com/matrix-org/matrix-spec-proposals/pull/4175)
+	"uk.tcpip.msc4133.stable",
 	"us.cloke.msc4175",
+	"us.cloke.msc4175.stable",
 	// stable flag for 3916 (https://github.com/matrix-org/matrix-spec-proposals/pull/4180)
 	"org.matrix.msc4180",
 	// Simplified Sliding sync (https://github.com/matrix-org/matrix-spec-proposals/pull/4186)

@@ -5,10 +5,7 @@ use ruma::{
 	api::{
 		client::{
 			membership::mutual_rooms,
-			profile::{
-				delete_profile_field, delete_timezone_key, get_profile_field, get_timezone_key,
-				set_profile_field, set_timezone_key,
-			},
+			profile::{delete_profile_field, get_profile_field, set_profile_field},
 		},
 		federation,
 	},
@@ -56,75 +53,11 @@ pub(crate) async fn get_mutual_rooms_route(
 	})
 }
 
-/// # `DELETE /_matrix/client/unstable/uk.tcpip.msc4133/profile/{user_id}/us.cloke.msc4175.tz`
+/// # `PUT /_matrix/client/v3/profile/{user_id}/{field}`
 ///
-/// Deletes the `tz` (timezone) of a user, as per MSC4133 and MSC4175.
-///
-/// - Also makes sure other users receive the update using presence EDUs
-pub(crate) async fn delete_timezone_key_route(
-	State(services): State<crate::State>,
-	ClientIp(client): ClientIp,
-	body: Ruma<delete_timezone_key::unstable::Request>,
-) -> Result<delete_timezone_key::unstable::Response> {
-	let sender_user = body.sender_user();
-
-	if *sender_user != body.user_id && body.appservice_info.is_none() {
-		return Err!(Request(Forbidden("You cannot update the profile of another user")));
-	}
-
-	services.users.set_timezone(&body.user_id, None);
-
-	// Presence update
-	services
-		.presence
-		.maybe_ping_presence(
-			&body.user_id,
-			body.sender_device.as_deref(),
-			Some(client),
-			&PresenceState::Online,
-		)
-		.await?;
-
-	Ok(delete_timezone_key::unstable::Response {})
-}
-
-/// # `PUT /_matrix/client/unstable/uk.tcpip.msc4133/profile/{user_id}/us.cloke.msc4175.tz`
-///
-/// Updates the `tz` (timezone) of a user, as per MSC4133 and MSC4175.
-///
-/// - Also makes sure other users receive the update using presence EDUs
-pub(crate) async fn set_timezone_key_route(
-	State(services): State<crate::State>,
-	ClientIp(client): ClientIp,
-	body: Ruma<set_timezone_key::unstable::Request>,
-) -> Result<set_timezone_key::unstable::Response> {
-	let sender_user = body.sender_user();
-
-	if *sender_user != body.user_id && body.appservice_info.is_none() {
-		return Err!(Request(Forbidden("You cannot update the profile of another user")));
-	}
-
-	services
-		.users
-		.set_timezone(&body.user_id, body.tz.as_deref());
-
-	// Presence update
-	services
-		.presence
-		.maybe_ping_presence(
-			&body.user_id,
-			body.sender_device.as_deref(),
-			Some(client),
-			&PresenceState::Online,
-		)
-		.await?;
-
-	Ok(set_timezone_key::unstable::Response {})
-}
-
-/// # `PUT /_matrix/client/unstable/uk.tcpip.msc4133/profile/{user_id}/{field}`
-///
-/// Updates the profile key-value field of a user, as per MSC4133.
+/// Updates the profile key-value field of a user. Stabilized as part of
+/// Matrix 1.16 (MSC4133); ruma's history block keeps the unstable
+/// `uk.tcpip.msc4133` path mounted for older clients.
 ///
 /// This also handles the avatar_url and displayname being updated.
 pub(crate) async fn set_profile_field_route(
@@ -256,67 +189,7 @@ pub(crate) async fn delete_profile_field_route(
 	Ok(delete_profile_field::v3::Response {})
 }
 
-/// # `GET /_matrix/client/unstable/uk.tcpip.msc4133/profile/{user_id}/us.cloke.msc4175.tz`
-///
-/// Returns the `timezone` of the user as per MSC4133 and MSC4175.
-///
-/// - If user is on another server and we do not have a local copy already fetch
-///   `timezone` over federation
-pub(crate) async fn get_timezone_key_route(
-	State(services): State<crate::State>,
-	body: Ruma<get_timezone_key::unstable::Request>,
-) -> Result<get_timezone_key::unstable::Response> {
-	if !services.globals.user_is_local(&body.user_id) {
-		// Create and update our local copy of the user
-		if let Ok(response) = services
-			.federation
-			.execute(
-				body.user_id.server_name(),
-				federation::query::get_profile_information::v1::Request {
-					user_id: body.user_id.clone(),
-					field: None, // we want the full user's profile to update locally as well
-				},
-			)
-			.await
-		{
-			if !services.users.exists(&body.user_id).await {
-				services
-					.users
-					.create(&body.user_id, None, None)
-					.await?;
-			}
-
-			let tz = profile_str(&response, "m.tz");
-			services
-				.users
-				.set_displayname(&body.user_id, profile_str(&response, "displayname"));
-
-			services
-				.users
-				.set_avatar_url(&body.user_id, profile_mxc(&response, "avatar_url"));
-
-			services
-				.users
-				.set_blurhash(&body.user_id, profile_str(&response, "blurhash"));
-
-			services.users.set_timezone(&body.user_id, tz);
-
-			return Ok(get_timezone_key::unstable::Response { tz: tz.map(str::to_owned) });
-		}
-	}
-
-	if !services.users.exists(&body.user_id).await {
-		// Return 404 if this user doesn't exist and we couldn't fetch it over
-		// federation
-		return Err!(Request(NotFound("Profile was not found.")));
-	}
-
-	Ok(get_timezone_key::unstable::Response {
-		tz: services.users.timezone(&body.user_id).await.ok(),
-	})
-}
-
-/// # `GET /_matrix/client/unstable/uk.tcpip.msc4133/profile/{userId}/{field}}`
+/// # `GET /_matrix/client/v3/profile/{userId}/{field}`
 ///
 /// Gets the profile key-value field of a user, as per MSC4133.
 ///
