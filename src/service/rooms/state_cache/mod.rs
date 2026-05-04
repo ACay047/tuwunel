@@ -13,9 +13,7 @@ use ruma::{
 	serde::Raw,
 };
 use tuwunel_core::{
-	Result, implement,
-	result::LogErr,
-	trace,
+	Result, implement, trace,
 	utils::{
 		self, BoolExt,
 		future::OptionStream,
@@ -97,16 +95,7 @@ pub async fn appservice_in_room(&self, room_id: &RoomId, appservice: &Registrati
 		return cached;
 	}
 
-	let bridge_user_id = UserId::parse_with_server_name(
-		appservice.registration.sender_localpart.as_str(),
-		self.services.globals.server_name(),
-	);
-
-	let Ok(bridge_user_id) = bridge_user_id.log_err() else {
-		return false;
-	};
-
-	let in_room = self.is_joined(&bridge_user_id, room_id).await
+	let in_room = self.is_joined(&appservice.sender, room_id).await
 		|| self
 			.room_members(room_id)
 			.ready_any(|user_id| appservice.is_user_match(user_id))
