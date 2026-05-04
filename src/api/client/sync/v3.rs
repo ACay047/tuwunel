@@ -55,7 +55,6 @@ use tuwunel_core::{
 		option::OptionExt,
 		result::MapExpect,
 		stream::{BroadbandExt, Tools, TryExpect, WidebandExt},
-		string::to_small_string,
 	},
 };
 use tuwunel_service::{

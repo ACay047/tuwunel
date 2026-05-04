@@ -36,8 +36,15 @@ use tuwunel_service::{Services, sync::Room};
 use super::{super::load_timeline, Connection, SyncInfo, Window, WindowRoom};
 use crate::client::ignored_filter;
 
-static DEFAULT_BUMP_TYPES: [TimelineEventType; 6] =
-	[CallInvite, PollStart, Beacon, RoomEncrypted, RoomMessage, Sticker];
+/// MUST be sorted by `TimelineEventType::event_type_str()` for `binary_search`.
+static DEFAULT_BUMP_TYPES: [TimelineEventType; 6] = [
+	CallInvite,    // m.call.invite
+	PollStart,     // m.poll.start
+	RoomEncrypted, // m.room.encrypted
+	RoomMessage,   // m.room.message
+	Sticker,       // m.sticker
+	Beacon,        // org.matrix.msc3672.beacon
+];
 
 #[tracing::instrument(
     name = "rooms",
@@ -81,11 +88,6 @@ async fn handle_room(
 		lists, membership, room_id, last_count, ..
 	}: &WindowRoom,
 ) -> Result<response::Room> {
-	debug_assert!(
-		DEFAULT_BUMP_TYPES.is_sorted(),
-		"DEFAULT_BUMP_TYPES must be sorted for binary search"
-	);
-
 	let &Room { roomsince, .. } = conn
 		.rooms
 		.get(room_id)
@@ -455,4 +457,12 @@ async fn calculate_heroes(
 		.flatten();
 
 	(Some(heroes), hero_name, heroes_avatar)
+}
+
+#[cfg_attr(debug_assertions, tuwunel_core::ctor)]
+fn _is_sorted() {
+	debug_assert!(
+		DEFAULT_BUMP_TYPES.is_sorted(),
+		"DEFAULT_BUMP_TYPES must be sorted by the developer"
+	);
 }

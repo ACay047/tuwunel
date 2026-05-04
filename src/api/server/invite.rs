@@ -29,6 +29,11 @@ use crate::{ClientIp, Ruma};
 ///
 /// Invites a remote user to a room.
 #[tracing::instrument(skip_all, fields(%client), name = "invite")]
+#[expect(
+	deprecated,
+	reason = "Matrix 1.16 still permits receiving the legacy stripped variant for backwards \
+	          compatibility."
+)]
 pub(crate) async fn create_invite_route(
 	State(services): State<crate::State>,
 	ClientIp(client): ClientIp,

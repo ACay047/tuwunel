@@ -149,7 +149,7 @@ impl AuthDispatch for NoAuthentication {
 	async fn dispatch<T>(
 		services: &Services,
 		request: &mut Request,
-		json_body: Option<&CanonicalJsonValue>,
+		_json_body: Option<&CanonicalJsonValue>,
 		token: Token,
 	) -> Result<Auth>
 	where
@@ -182,10 +182,7 @@ impl AuthDispatch for NoAuthentication {
 				..Auth::default()
 			}),
 
-			| Token::None => {
-				let _ = (request, json_body);
-				Ok(Auth::default())
-			},
+			| Token::None => Ok(Auth::default()),
 		}
 	}
 }

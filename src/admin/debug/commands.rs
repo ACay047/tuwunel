@@ -197,7 +197,7 @@ pub(super) async fn get_remote_pdu_list(&self, server: OwnedServerName, force: b
 
 	for event_id in list {
 		let result = self
-			.get_remote_pdu(event_id.to_owned(), server.clone())
+			.get_remote_pdu(event_id, server.clone())
 			.await;
 
 		if !force {

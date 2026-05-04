@@ -111,6 +111,11 @@ pub async fn knock(
 }
 
 #[implement(Service)]
+#[expect(
+	deprecated,
+	reason = "Matrix 1.16 still permits receiving the legacy stripped variant for backwards \
+	          compatibility."
+)]
 async fn knock_room_helper_local(
 	&self,
 	sender_user: &UserId,
@@ -350,6 +355,11 @@ async fn knock_room_helper_local(
 }
 
 #[implement(Service)]
+#[expect(
+	deprecated,
+	reason = "Matrix 1.16 still permits receiving the legacy stripped variant for backwards \
+	          compatibility."
+)]
 async fn knock_room_helper_remote(
 	&self,
 	sender_user: &UserId,

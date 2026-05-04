@@ -30,7 +30,7 @@ pub(super) fn profile_str<'a>(resp: &'a ProfileResponse, field: &str) -> Option<
 }
 
 pub(super) fn profile_mxc<'a>(resp: &'a ProfileResponse, field: &str) -> Option<&'a MxcUri> {
-	profile_str(resp, field).and_then(|s| <&MxcUri>::try_from(s).ok())
+	profile_str(resp, field).map(<&MxcUri>::from)
 }
 
 /// # `PUT /_matrix/client/r0/profile/{userId}/displayname`
@@ -253,6 +253,8 @@ pub(crate) async fn get_profile_route(
 	State(services): State<crate::State>,
 	body: Ruma<get_profile::v3::Request>,
 ) -> Result<get_profile::v3::Response> {
+	const CANONICAL_FIELDS: &[&str] = &["avatar_url", "blurhash", "displayname", "m.tz"];
+
 	if !services.globals.user_is_local(&body.user_id) {
 		// Create and update our local copy of the user
 		if let Ok(response) = services
@@ -283,7 +285,6 @@ pub(crate) async fn get_profile_route(
 				.users
 				.set_timezone(&body.user_id, profile_str(&response, "m.tz"));
 
-			const CANONICAL_FIELDS: &[&str] = &["avatar_url", "blurhash", "displayname", "m.tz"];
 			for (key, value) in response.iter() {
 				if CANONICAL_FIELDS.contains(&key.as_str()) {
 					continue;
