@@ -98,7 +98,7 @@ impl Data {
 			.rev_keys_prefix(&key)
 			.ignore_err()
 			.ready_take_while(|(_, c, u): &Key<'_>| {
-				since.is_none_or(|since| since.gt(c)) && user_id.is_none_or(is_equal_to!(*u))
+				since.is_none_or(|since| since > *c) && user_id.is_none_or(is_equal_to!(*u))
 			})
 			.map(|(_, c, _): Key<'_>| c)
 			.boxed()
