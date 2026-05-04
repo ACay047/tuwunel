@@ -120,8 +120,10 @@ server {
   ~listen [::]:443 ssl http2;
   server_name example.com;
 
-  location /.well-known/matrix {
-    proxy_pass http://tuwunel/.well-known/matrix;
+  set $backend "tuwunel";
+
+  location /.well-known/matrix/ {
+    proxy_pass http://$backend:6167$request_uri;
     proxy_set_header X-Forwarded-For $remote_addr;
     proxy_ssl_server_name on;
   }
