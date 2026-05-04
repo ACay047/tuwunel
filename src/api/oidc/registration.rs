@@ -14,7 +14,7 @@ pub(crate) async fn registration_route(
 		return Err!(Request(InvalidParam("redirect_uris must not be empty")));
 	}
 
-	let reg = oidc.register_client(body)?;
+	let reg = oidc.register_client(body).await?;
 
 	info!(
 		"OIDC client registered: {} ({})",

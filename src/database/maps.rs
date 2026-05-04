@@ -151,7 +151,7 @@ pub(super) static MAPS: &[Descriptor] = &[
 	},
 	Descriptor {
 		name: "oidcclientid_registration",
-		..descriptor::RANDOM_SMALL
+		..descriptor::RANDOM_SMALL_CACHE
 	},
 	Descriptor {
 		name: "oidccode_authsession",

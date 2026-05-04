@@ -1,10 +1,12 @@
-use std::time::SystemTime;
-
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD as b64};
 use serde::{Deserialize, Serialize};
-use tuwunel_core::{Result, err, implement, utils};
+use tuwunel_core::{
+	Result, err, implement,
+	utils::{hash::sha256, time::now_secs},
+};
 use tuwunel_database::{Cbor, Deserialized};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct DcrRequest {
 	pub redirect_uris: Vec<String>,
 	pub client_name: Option<String>,
@@ -41,11 +43,14 @@ pub struct ClientRegistration {
 	pub registered_at: u64,
 }
 
-const CLIENT_ID_LENGTH: usize = 32;
-
 #[implement(super::Server)]
-pub fn register_client(&self, request: DcrRequest) -> Result<ClientRegistration> {
-	let client_id = utils::random_string(CLIENT_ID_LENGTH);
+pub async fn register_client(&self, request: DcrRequest) -> Result<ClientRegistration> {
+	let request = normalize(request);
+	let client_id = derive_client_id(&request);
+
+	if let Ok(existing) = self.get_client(&client_id).await {
+		return Ok(existing);
+	}
 
 	let auth_method = request
 		.token_endpoint_auth_method
@@ -60,7 +65,7 @@ pub fn register_client(&self, request: DcrRequest) -> Result<ClientRegistration>
 		.unwrap_or_else(|| vec!["authorization_code".to_owned(), "refresh_token".to_owned()]);
 
 	let registration = ClientRegistration {
-		client_id: client_id.clone(),
+		client_id,
 		redirect_uris: request.redirect_uris,
 		client_name: request.client_name,
 		client_uri: request.client_uri,
@@ -74,15 +79,12 @@ pub fn register_client(&self, request: DcrRequest) -> Result<ClientRegistration>
 		tos_uri: request.tos_uri,
 		software_id: request.software_id,
 		software_version: request.software_version,
-		registered_at: SystemTime::now()
-			.duration_since(SystemTime::UNIX_EPOCH)
-			.unwrap_or_default()
-			.as_secs(),
+		registered_at: now_secs(),
 	};
 
 	self.db
 		.oidcclientid_registration
-		.raw_put(&*client_id, Cbor(&registration));
+		.raw_put(&*registration.client_id, Cbor(&registration));
 
 	Ok(registration)
 }
@@ -96,4 +98,25 @@ pub async fn get_client(&self, client_id: &str) -> Result<ClientRegistration> {
 		.deserialized::<Cbor<_>>()
 		.map(|cbor: Cbor<ClientRegistration>| cbor.0)
 		.map_err(|_| err!(Request(NotFound("Unknown client_id"))))
+}
+
+fn normalize(mut request: DcrRequest) -> DcrRequest {
+	request.redirect_uris.sort();
+	request.contacts.sort();
+	request
+		.grant_types
+		.iter_mut()
+		.for_each(|v| v.sort());
+	request
+		.response_types
+		.iter_mut()
+		.for_each(|v| v.sort());
+
+	request
+}
+
+fn derive_client_id(request: &DcrRequest) -> String {
+	let json = serde_json::to_vec(request).expect("DcrRequest is always serializable");
+
+	b64.encode(sha256::hash(json))
 }
